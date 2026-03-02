@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <!-- Добавление тестовых товаров -->
+    <changeSet id="001-insert-test-items" author="market">
+        <insert tableName="items">
+            <column name="id" value="1"/>
+            <column name="title" value="Товар 1"/>
+            <column name="description" value="Описание товара 1"/>
+            <column name="img_path" value="/images/item1.jpg"/>
+            <column name="price" value="100"/>
+        </insert>
+        
+        <insert tableName="items">
+            <column name="id" value="2"/>
+            <column name="title" value="Товар 2"/>
+            <column name="description" value="Описание товара 2"/>
+            <column name="img_path" value="/images/item2.jpg"/>
+            <column name="price" value="200"/>
+        </insert>
+        
+        <insert tableName="items">
+            <column name="id" value="3"/>
+            <column name="title" value="Товар 3"/>
+            <column name="description" value="Описание товара 3"/>
+            <column name="img_path" value="/images/item3.jpg"/>
+            <column name="price" value="300"/>
+        </insert>
+    </changeSet>
+
+    <!-- Добавление тестовой корзины -->
+    <changeSet id="002-insert-test-cart" author="market">
+        <insert tableName="carts">
+            <column name="id" value="1"/>
+        </insert>
+    </changeSet>
+
+    <!-- Добавление товаров в корзину -->
+    <changeSet id="003-insert-test-cart-items" author="market">
+        <insert tableName="cart_items">
+            <column name="cart_id" value="1"/>
+            <column name="item_id" value="1"/>
+            <column name="count" value="2"/>
+        </insert>
+        
+        <insert tableName="cart_items">
+            <column name="cart_id" value="1"/>
+            <column name="item_id" value="2"/>
+            <column name="count" value="1"/>
+        </insert>
+    </changeSet>
+
+    <!-- Добавление тестового заказа -->
+    <changeSet id="004-insert-test-order" author="market">
+        <insert tableName="orders">
+            <column name="id" value="1"/>
+            <column name="total_sum" value="400"/>
+        </insert>
+    </changeSet>
+
+    <!-- Добавление товаров в заказ -->
+    <changeSet id="005-insert-test-order-items" author="market">
+        <insert tableName="order_items">
+            <column name="order_id" value="1"/>
+            <column name="item_id" value="1"/>
+            <column name="count" value="2"/>
+        </insert>
+        
+        <insert tableName="order_items">
+            <column name="order_id" value="1"/>
+            <column name="item_id" value="2"/>
+            <column name="count" value="1"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>
