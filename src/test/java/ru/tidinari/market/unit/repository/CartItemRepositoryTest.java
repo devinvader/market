@@ -1,0 +1,129 @@
+package ru.tidinari.market.unit.repository;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.jdbc.Sql;
+import ru.tidinari.market.domain.Cart;
+import ru.tidinari.market.domain.CartItem;
+import ru.tidinari.market.domain.CartItemId;
+import ru.tidinari.market.domain.Item;
+import ru.tidinari.market.repository.CartItemRepository;
+import ru.tidinari.market.repository.CartRepository;
+import ru.tidinari.market.repository.ItemRepository;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class CartItemRepositoryTest extends BaseRepositoryTest {
+    @Autowired
+    private CartItemRepository cartItemRepository;
+
+    @Autowired
+    private CartRepository cartRepository;
+
+    @Autowired
+    private ItemRepository itemRepository;
+
+    @Test
+    public void testSaveAndFindById() {
+        // given
+        Cart cart = new Cart();
+        Cart savedCart = cartRepository.save(cart);
+
+        Item item = new Item();
+        item.setTitle("Test Item");
+        item.setPrice(100L);
+        Item savedItem = itemRepository.save(item);
+
+        CartItem cartItem = new CartItem();
+        cartItem.setCart(savedCart);
+        cartItem.setItem(savedItem);
+        cartItem.setCount(2);
+
+        // when
+        CartItem savedCartItem = cartItemRepository.save(cartItem);
+        CartItemId cartItemId = new CartItemId(savedCart.getId(), savedItem.getId());
+        CartItem foundCartItem = cartItemRepository.findById(cartItemId).orElse(null);
+
+        // then
+        assertThat(foundCartItem).isNotNull();
+        assertThat(foundCartItem.getCount()).isEqualTo(2);
+    }
+
+    @Test
+    public void testFindByCartId() {
+        // given
+        Cart cart = new Cart();
+        Cart savedCart = cartRepository.save(cart);
+
+        Item item = new Item();
+        item.setTitle("Test Item");
+        item.setPrice(100L);
+        Item savedItem = itemRepository.save(item);
+
+        CartItem cartItem = new CartItem();
+        cartItem.setCart(savedCart);
+        cartItem.setItem(savedItem);
+        cartItem.setCount(2);
+        cartItemRepository.save(cartItem);
+
+        // when
+        List<CartItem> cartItems = cartItemRepository.findByCartId(savedCart.getId());
+
+        // then
+        assertThat(cartItems).hasSize(1);
+        assertThat(cartItems.get(0).getCount()).isEqualTo(2);
+    }
+
+    @Test
+    public void testFindByCartIdAndItemId() {
+        // given
+        Cart cart = new Cart();
+        Cart savedCart = cartRepository.save(cart);
+
+        Item item = new Item();
+        item.setTitle("Test Item");
+        item.setPrice(100L);
+        Item savedItem = itemRepository.save(item);
+
+        CartItem cartItem = new CartItem();
+        cartItem.setCart(savedCart);
+        cartItem.setItem(savedItem);
+        cartItem.setCount(2);
+        cartItemRepository.save(cartItem);
+
+        // when
+        CartItem foundCartItem = cartItemRepository.findByCartIdAndItemId(savedCart.getId(), savedItem.getId());
+
+        // then
+        assertThat(foundCartItem).isNotNull();
+        assertThat(foundCartItem.getCount()).isEqualTo(2);
+    }
+
+    @Test
+    public void testDelete() {
+        // given
+        Cart cart = new Cart();
+        Cart savedCart = cartRepository.save(cart);
+
+        Item item = new Item();
+        item.setTitle("Test Item");
+        item.setPrice(100L);
+        Item savedItem = itemRepository.save(item);
+
+        CartItem cartItem = new CartItem();
+        cartItem.setCart(savedCart);
+        cartItem.setItem(savedItem);
+        cartItem.setCount(2);
+        CartItem savedCartItem = cartItemRepository.save(cartItem);
+
+        // when
+        CartItemId cartItemId = new CartItemId(savedCart.getId(), savedItem.getId());
+        cartItemRepository.deleteById(cartItemId);
+        CartItem foundCartItem = cartItemRepository.findById(cartItemId).orElse(null);
+
+        // then
+        assertThat(foundCartItem).isNull();
+    }
+}

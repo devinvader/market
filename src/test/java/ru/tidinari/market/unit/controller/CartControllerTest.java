@@ -1,39 +1,76 @@
 package ru.tidinari.market.unit.controller;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.internal.verification.VerificationModeFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.servlet.ModelAndView;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 import ru.tidinari.market.service.CartService;
 import ru.tidinari.market.web.controller.CartController;
 import ru.tidinari.market.web.dto.ActionTypeDto;
+import ru.tidinari.market.web.dto.ItemDto;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.List;
+
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-public class CartControllerTest extends BaseControllerTest {
-    @Autowired
-    private CartController cartController;
-    @Autowired
+@WebMvcTest(CartController.class)
+public class CartControllerTest {
+
+    @MockitoBean
     private CartService cartService;
 
+    @Autowired
+    private MockMvc mockMvc;
+
     @Test
-    public void getItems_shouldReturnCartView() {
+    public void getItems_shouldReturnCartView() throws Exception {
+        // given
+        List<ItemDto> expectedItems = List.of(
+                new ItemDto(1L, "Item 1", "Description 1", "/img1.jpg", 1000, 2),
+                new ItemDto(2L, "Item 2", "Description 2", "/img2.jpg", 2000, 1)
+        );
+        int expectedTotal = 4000; // 1000*2 + 2000*1
+        when(cartService.getCartItems()).thenReturn(expectedItems);
+        when(cartService.getTotal()).thenReturn(expectedTotal);
+
         // when
-        ModelAndView modelAndView = cartController.getItems();
+        mockMvc.perform(get("/cart/items"))
         // then
-        assertEquals("cart", modelAndView.getViewName());
-        verify(cartService, VerificationModeFactory.only()).getCartItems();
-        verify(cartService, VerificationModeFactory.only()).getTotal();
+                .andExpect(status().isOk())
+                .andExpect(view().name("cart"))
+                .andExpect(model().attribute("items", expectedItems))
+                .andExpect(model().attribute("total", expectedTotal));
+
+        verify(cartService).getCartItems();
+        verify(cartService).getTotal();
     }
 
     @Test
-    public void actOnItems_shouldReturnCartView() {
+    public void actOnItems_shouldReturnCartView() throws Exception {
+        // given
+        List<ItemDto> expectedItems = List.of(
+                new ItemDto(1L, "Item 1", "Description 1", "/img1.jpg", 1000, 3)
+        );
+        int expectedTotal = 3000;
+        when(cartService.actOnCartItems(1L, ActionTypeDto.PLUS)).thenReturn(expectedItems);
+        when(cartService.getTotal()).thenReturn(expectedTotal);
+
         // when
-        ModelAndView modelAndView = cartController.actOnItems(1, ActionTypeDto.PLUS);
+        mockMvc.perform(post("/cart/items")
+                .param("id", "1")
+                .param("action", "PLUS"))
         // then
-        assertEquals("cart", modelAndView.getViewName());
-        verify(cartService, VerificationModeFactory.only()).actOnCartItems(1, ActionTypeDto.PLUS);
-        verify(cartService, VerificationModeFactory.only()).getTotal();
+                .andExpect(status().isOk())
+                .andExpect(view().name("cart"))
+                .andExpect(model().attribute("items", expectedItems))
+                .andExpect(model().attribute("total", expectedTotal));
+
+        verify(cartService).actOnCartItems(1L, ActionTypeDto.PLUS);
+        verify(cartService).getTotal();
     }
 }

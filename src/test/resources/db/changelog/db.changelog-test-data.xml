@@ -8,6 +8,6 @@
     <!-- Подключение основных миграций -->
     <include file="db/changelog/db.changelog-001-init.xml" relativeToChangelogFile="true"/>
     <!-- Тестовые данные -->
-    <include file="db/changelog/db.changelog-901-add-items.xml" relativeToChangelogFile="true"/>
+    <include file="db/changelog/db.changelog-901-test-data.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

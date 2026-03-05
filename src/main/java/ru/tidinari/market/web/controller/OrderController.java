@@ -1,6 +1,6 @@
 package ru.tidinari.market.web.controller;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -9,10 +9,10 @@ import org.springframework.web.servlet.ModelAndView;
 import ru.tidinari.market.service.OrderService;
 
 @Controller
-@RequiredArgsConstructor
 public class OrderController {
 
-    private final OrderService orderService;
+    @Autowired
+    private OrderService orderService;
 
     @GetMapping("/orders")
     public ModelAndView getOrders() {
@@ -24,9 +24,9 @@ public class OrderController {
     @GetMapping("/orders/{id}")
     public ModelAndView getOrder(
             @PathVariable(name = "id") long id,
-            @RequestParam(name = "newOrder") boolean newOrder
+            @RequestParam(name = "newOrder", defaultValue = "false") boolean newOrder
     ) {
-        ModelAndView modelAndView = new ModelAndView("orders");
+        ModelAndView modelAndView = new ModelAndView("order");
         modelAndView.addObject("order", orderService.getOrder(id, newOrder));
         modelAndView.addObject("newOrder", newOrder);
         return modelAndView;
