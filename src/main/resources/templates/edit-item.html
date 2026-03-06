@@ -24,7 +24,7 @@
             <div class="col">
                 <div class="card">
                     <div class="card-body">
-                        <form th:action="@{${'/admin/items/'+item.id()}}" method="post" th:object="${item}">
+                        <form th:action="@{${'/admin/items/'+item.id()}}" method="post" enctype="multipart/form-data" th:object="${item}">
                             <div class="mb-3">
                                 <label for="title" class="form-label">Название</label>
                                 <input type="text" class="form-control" id="title" th:field="*{title}" required>
@@ -34,10 +34,14 @@
                                 <textarea class="form-control" id="description" th:field="*{description}" rows="3"></textarea>
                             </div>
                             <div class="mb-3">
-                                <label for="imgPath" class="form-label">Путь к изображению (относительный, например 'images/item1.jpg')</label>
-                                <input type="text" class="form-control" id="imgPath" th:field="*{imgPath}">
-                                <div class="form-text">Текущее изображение: <span th:text="${item.imgPath()}"></span></div>
-                                <img th:src="${'/'+item.imgPath()}" alt="Нет изображения" width="100" height="100" class="mt-2">
+                                <label for="imageFile" class="form-label">Изображение товара</label>
+                                <input type="file" class="form-control" id="imageFile" name="imageFile" accept="image/*">
+                                <div class="form-text">Загрузите новое изображение, чтобы заменить текущее. Оставьте пустым, чтобы оставить текущее.</div>
+                                <div class="mt-2">
+                                    <span>Текущее изображение:</span>
+                                    <img th:src="@{${'/items/'+item.id()+'/image'}}" alt="Нет изображения" width="100" height="100" class="mt-2" onerror="this.style.display='none'">
+                                    <span th:if="${item.imgPath() == null || item.imgPath().isEmpty()}">Нет изображения</span>
+                                </div>
                             </div>
                             <div class="mb-3">
                                 <label for="price" class="form-label">Цена (в руб.)</label>

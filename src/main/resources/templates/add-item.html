@@ -24,7 +24,7 @@
             <div class="col">
                 <div class="card">
                     <div class="card-body">
-                        <form th:action="@{/admin/items}" method="post">
+                        <form th:action="@{/admin/items}" method="post" enctype="multipart/form-data">
                             <div class="mb-3">
                                 <label for="title" class="form-label">Название *</label>
                                 <input type="text" class="form-control" id="title" name="title" required>
@@ -34,9 +34,9 @@
                                 <textarea class="form-control" id="description" name="description" rows="3"></textarea>
                             </div>
                             <div class="mb-3">
-                                <label for="imgPath" class="form-label">Путь к изображению (относительный, например 'images/item1.jpg')</label>
-                                <input type="text" class="form-control" id="imgPath" name="imgPath">
-                                <div class="form-text">Оставьте пустым, если изображение отсутствует.</div>
+                                <label for="imageFile" class="form-label">Изображение товара</label>
+                                <input type="file" class="form-control" id="imageFile" name="imageFile" accept="image/*">
+                                <div class="form-text">Загрузите изображение для товара. Если не загрузить, изображение будет отсутствовать.</div>
                             </div>
                             <div class="mb-3">
                                 <label for="price" class="form-label">Цена (в руб.) *</label>

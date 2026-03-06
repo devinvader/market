@@ -5,7 +5,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
 import ru.tidinari.market.domain.Item;
 import ru.tidinari.market.repository.ItemRepository;
 import ru.tidinari.market.web.dto.ActionTypeDto;
@@ -21,12 +20,17 @@ public class ItemsService {
     @Autowired
     private ItemRepository itemRepository;
 
+    @Autowired
+    private ImageService imageService;
+
     public List<List<ItemDto>> getItems(String search, SortTypeDto sortType, Integer page, Integer size) {
         Pageable pageable = PageRequest.of(page, size, sortType.getSort());
         Page<Item> itemPage = itemRepository.findByTitleContainingIgnoreCase(search, pageable);
 
         List<ItemDto> items = itemPage.getContent().stream()
-                .map(item -> new ItemDto(item.getId(), item.getTitle(), item.getDescription(), item.getImgPath(), item.getPrice(), 0))
+                .map(item -> {
+                    return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), imageService.getImageUrl(item.getId()), item.getPrice(), 0);
+                })
                 .collect(Collectors.toList());
 
         // Разбиваем на группы по 3 элемента
@@ -37,6 +41,9 @@ public class ItemsService {
                 group.add(items.get(j));
             }
             groups.add(group);
+        }
+        if (groups.isEmpty()) {
+            return groups;
         }
         // В последней группе может быть недобор
         List<ItemDto> lastGroup = groups.getLast();
@@ -49,11 +56,11 @@ public class ItemsService {
 
     public ItemDto getItem(long id) {
         Item item = itemRepository.findById(id).orElseThrow(() -> new RuntimeException("Item not found"));
-        return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), item.getImgPath(), item.getPrice(), 0);
+        return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), imageService.getImageUrl(id), item.getPrice(), 0);
     }
 
     public ItemDto actOnItem(long id, ActionTypeDto action) {
         Item item = itemRepository.findById(id).orElseThrow(() -> new RuntimeException("Item not found"));
-        return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), item.getImgPath(), item.getPrice(), 1);
+        return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), imageService.getImageUrl(id), item.getPrice(), 1);
     }
 }

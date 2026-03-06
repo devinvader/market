@@ -14,7 +14,6 @@
                 <constraints nullable="false" />
             </column>
             <column name="description" type="TEXT" />
-            <column name="img_path" type="VARCHAR(512)" />
             <column name="price" type="BIGINT">
                 <constraints nullable="false" />
             </column>
@@ -114,11 +113,6 @@
                     unique="true" />
             </column>
         </createTable>
-        <addForeignKeyConstraint baseTableName="images"
-            baseColumnNames="item_id"
-            constraintName="fk_images_item_id"
-            referencedTableName="items"
-            referencedColumnNames="id" />
     </changeSet>
 
 </databaseChangeLog>

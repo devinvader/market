@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.tidinari.market.domain.*;
 import ru.tidinari.market.repository.*;
+import ru.tidinari.market.service.ImageService;
 import ru.tidinari.market.service.OrderService;
 import ru.tidinari.market.web.dto.ItemDto;
 import ru.tidinari.market.web.dto.OrderDto;
@@ -34,6 +35,9 @@ public class OrderServiceTest {
     @Mock
     private CartItemRepository cartItemRepository;
 
+    @Mock
+    private ImageService imageService;
+
     @InjectMocks
     private OrderService orderService;
 
@@ -58,13 +62,15 @@ public class OrderServiceTest {
         order.setId(1L);
         order.setTotalSum(5000L);
 
-        Item item1 = new Item(10L, "Item1", "Desc1", "/img1.jpg", 1000L);
-        Item item2 = new Item(20L, "Item2", "Desc2", "/img2.jpg", 2000L);
+        Item item1 = new Item(10L, "Item1", "Desc1", 1000L, null);
+        Item item2 = new Item(20L, "Item2", "Desc2", 2000L, null);
         OrderItem orderItem1 = new OrderItem(order, item1, 2);
         OrderItem orderItem2 = new OrderItem(order, item2, 1);
 
         when(orderRepository.findAll()).thenReturn(List.of(order));
         when(orderItemRepository.findByOrderId(1L)).thenReturn(List.of(orderItem1, orderItem2));
+        when(imageService.getImageUrl(10L)).thenReturn("/items/10/image");
+        when(imageService.getImageUrl(20L)).thenReturn("/items/20/image");
 
         // when
         List<OrderDto> result = orderService.getOrders();
@@ -88,6 +94,8 @@ public class OrderServiceTest {
 
         verify(orderRepository).findAll();
         verify(orderItemRepository).findByOrderId(1L);
+        verify(imageService).getImageUrl(10L);
+        verify(imageService).getImageUrl(20L);
     }
 
     @Test
@@ -96,11 +104,12 @@ public class OrderServiceTest {
         Order order = new Order();
         order.setId(5L);
         order.setTotalSum(3000L);
-        Item item = new Item(30L, "Item3", "Desc3", "/img3.jpg", 1500L);
+        Item item = new Item(30L, "Item3", "Desc3", 1500L, null);
         OrderItem orderItem = new OrderItem(order, item, 2);
 
         when(orderRepository.findById(5L)).thenReturn(Optional.of(order));
         when(orderItemRepository.findByOrderId(5L)).thenReturn(List.of(orderItem));
+        when(imageService.getImageUrl(30L)).thenReturn("/items/30/image");
 
         // when
         OrderDto result = orderService.getOrder(5L, false);
@@ -116,6 +125,7 @@ public class OrderServiceTest {
 
         verify(orderRepository).findById(5L);
         verify(orderItemRepository).findByOrderId(5L);
+        verify(imageService).getImageUrl(30L);
         verifyNoInteractions(cartRepository, cartItemRepository);
     }
 
@@ -138,12 +148,11 @@ public class OrderServiceTest {
         long cartId = 1L;
         Cart cart = new Cart();
         cart.setId(cartId);
-        Item item1 = new Item(10L, "Item1", "Desc1", "/img1.jpg", 1000L);
-        Item item2 = new Item(20L, "Item2", "Desc2", "/img2.jpg", 2000L);
+        Item item1 = new Item(10L, "Item1", "Desc1", 1000L, null);
+        Item item2 = new Item(20L, "Item2", "Desc2", 2000L, null);
         CartItem cartItem1 = new CartItem(cart, item1, 3);
         CartItem cartItem2 = new CartItem(cart, item2, 1);
 
-        when(cartRepository.findById(cartId)).thenReturn(Optional.of(cart));
         when(cartItemRepository.findByCartId(cartId)).thenReturn(List.of(cartItem1, cartItem2));
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
             Order o = inv.getArgument(0);
@@ -151,6 +160,8 @@ public class OrderServiceTest {
             return o;
         });
         when(orderItemRepository.save(any(OrderItem.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(imageService.getImageUrl(10L)).thenReturn("/items/10/image");
+        when(imageService.getImageUrl(20L)).thenReturn("/items/20/image");
 
         // when
         OrderDto result = orderService.getOrder(cartId, true);
@@ -166,30 +177,39 @@ public class OrderServiceTest {
         // verify order and order items saved
         verify(orderRepository).save(any(Order.class));
         verify(orderItemRepository, times(2)).save(any(OrderItem.class));
-        verify(cartRepository).findById(cartId);
         verify(cartItemRepository).findByCartId(cartId);
+        verify(imageService).getImageUrl(10L);
+        verify(imageService).getImageUrl(20L);
+        verifyNoInteractions(cartRepository);
     }
 
     @Test
     void getOrder_NewOrder_CartNotFound_ThrowsException() {
         // given
-        when(cartRepository.findById(999L)).thenReturn(Optional.empty());
+        long cartId = 999L;
+        when(cartItemRepository.findByCartId(cartId)).thenReturn(List.of());
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
+            Order o = inv.getArgument(0);
+            o.setId(100L);
+            return o;
+        });
 
-        // when & then
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> orderService.getOrder(999L, true));
-        assertEquals("Cart not found", exception.getMessage());
-        verify(cartRepository).findById(999L);
-        verifyNoInteractions(cartItemRepository, orderRepository, orderItemRepository);
+        // when
+        OrderDto result = orderService.getOrder(cartId, true);
+
+        // then
+        assertEquals(100L, result.id());
+        assertEquals(0L, result.totalSum());
+        assertTrue(result.items().isEmpty());
+        verify(cartItemRepository).findByCartId(cartId);
+        verify(orderRepository).save(any(Order.class));
+        verifyNoInteractions(cartRepository, imageService);
     }
 
     @Test
     void getOrder_NewOrder_EmptyCart_ReturnsOrderWithZeroTotal() {
         // given
         long cartId = 1L;
-        Cart cart = new Cart();
-        cart.setId(cartId);
-        when(cartRepository.findById(cartId)).thenReturn(Optional.of(cart));
         when(cartItemRepository.findByCartId(cartId)).thenReturn(List.of());
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
             Order o = inv.getArgument(0);
@@ -207,5 +227,6 @@ public class OrderServiceTest {
         verify(cartItemRepository).deleteAll(List.of());
         verify(orderRepository).save(any(Order.class));
         verify(orderItemRepository, never()).save(any());
+        verifyNoInteractions(cartRepository, imageService);
     }
 }

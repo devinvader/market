@@ -21,9 +21,9 @@ public class Item {
     @Column
     private String description;
 
-    @Column(name = "img_path")
-    private String imgPath;
-
     @Column(nullable = false)
     private Long price;
+
+    @OneToOne(mappedBy = "item", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Image image;
 }

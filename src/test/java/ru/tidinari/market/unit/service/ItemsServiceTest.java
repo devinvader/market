@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import ru.tidinari.market.domain.Item;
 import ru.tidinari.market.repository.ItemRepository;
+import ru.tidinari.market.service.ImageService;
 import ru.tidinari.market.service.ItemsService;
 import ru.tidinari.market.web.dto.ItemDto;
 import ru.tidinari.market.web.dto.SortTypeDto;
@@ -28,8 +29,12 @@ public class ItemsServiceTest {
     @Mock
     private ItemRepository itemRepository;
 
+    @Mock
+    private ImageService imageService;
+
     @InjectMocks
     private ItemsService itemsService;
+
 
     @Test
     void getItems_EmptyResult_ReturnsEmptyList() {
@@ -48,7 +53,7 @@ public class ItemsServiceTest {
     @Test
     void getItems_OneItem_ReturnsOneGroupWithTwoEmpty() {
         // given
-        Item item = new Item(1L, "Item1", "Desc1", "/img1.jpg", 1000L);
+        Item item = new Item(1L, "Item1", "Desc1", 1000L, null);
         Page<Item> page = new PageImpl<>(List.of(item), PageRequest.of(0, 10), 1);
         when(itemRepository.findByTitleContainingIgnoreCase(anyString(), any(Pageable.class)))
                 .thenReturn(page);
@@ -71,9 +76,9 @@ public class ItemsServiceTest {
     @Test
     void getItems_ThreeItems_ReturnsOneGroupWithNoEmpty() {
         // given
-        Item item1 = new Item(1L, "Item1", "Desc1", "/img1.jpg", 1000L);
-        Item item2 = new Item(2L, "Item2", "Desc2", "/img2.jpg", 2000L);
-        Item item3 = new Item(3L, "Item3", "Desc3", "/img3.jpg", 3000L);
+        Item item1 = new Item(1L, "Item1", "Desc1", 1000L, null);
+        Item item2 = new Item(2L, "Item2", "Desc2", 2000L, null);
+        Item item3 = new Item(3L, "Item3", "Desc3", 3000L, null);
         Page<Item> page = new PageImpl<>(List.of(item1, item2, item3), PageRequest.of(0, 10), 3);
         when(itemRepository.findByTitleContainingIgnoreCase(anyString(), any(Pageable.class)))
                 .thenReturn(page);
@@ -93,10 +98,10 @@ public class ItemsServiceTest {
     @Test
     void getItems_FourItems_ReturnsTwoGroups() {
         // given
-        Item item1 = new Item(1L, "Item1", "Desc1", "/img1.jpg", 1000L);
-        Item item2 = new Item(2L, "Item2", "Desc2", "/img2.jpg", 2000L);
-        Item item3 = new Item(3L, "Item3", "Desc3", "/img3.jpg", 3000L);
-        Item item4 = new Item(4L, "Item4", "Desc4", "/img4.jpg", 4000L);
+        Item item1 = new Item(1L, "Item1", "Desc1", 1000L, null);
+        Item item2 = new Item(2L, "Item2", "Desc2", 2000L, null);
+        Item item3 = new Item(3L, "Item3", "Desc3", 3000L, null);
+        Item item4 = new Item(4L, "Item4", "Desc4", 4000L, null);
         Page<Item> page = new PageImpl<>(List.of(item1, item2, item3, item4), PageRequest.of(0, 10), 4);
         when(itemRepository.findByTitleContainingIgnoreCase(anyString(), any(Pageable.class)))
                 .thenReturn(page);
@@ -123,11 +128,11 @@ public class ItemsServiceTest {
     @Test
     void getItems_FiveItems_ReturnsTwoGroups() {
         // given
-        Item item1 = new Item(1L, "Item1", "Desc1", "/img1.jpg", 1000L);
-        Item item2 = new Item(2L, "Item2", "Desc2", "/img2.jpg", 2000L);
-        Item item3 = new Item(3L, "Item3", "Desc3", "/img3.jpg", 3000L);
-        Item item4 = new Item(4L, "Item4", "Desc4", "/img4.jpg", 4000L);
-        Item item5 = new Item(5L, "Item5", "Desc5", "/img5.jpg", 5000L);
+        Item item1 = new Item(1L, "Item1", "Desc1", 1000L, null);
+        Item item2 = new Item(2L, "Item2", "Desc2", 2000L, null);
+        Item item3 = new Item(3L, "Item3", "Desc3", 3000L, null);
+        Item item4 = new Item(4L, "Item4", "Desc4", 4000L, null);
+        Item item5 = new Item(5L, "Item5", "Desc5", 5000L, null);
         Page<Item> page = new PageImpl<>(List.of(item1, item2, item3, item4, item5), PageRequest.of(0, 10), 5);
         when(itemRepository.findByTitleContainingIgnoreCase(anyString(), any(Pageable.class)))
                 .thenReturn(page);

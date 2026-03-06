@@ -12,6 +12,7 @@ import ru.tidinari.market.repository.CartItemRepository;
 import ru.tidinari.market.repository.CartRepository;
 import ru.tidinari.market.repository.ItemRepository;
 import ru.tidinari.market.service.CartService;
+import ru.tidinari.market.service.ImageService;
 import ru.tidinari.market.web.dto.ActionTypeDto;
 import ru.tidinari.market.web.dto.ItemDto;
 
@@ -35,6 +36,9 @@ public class CartServiceTest {
 
     @Mock
     private ItemRepository itemRepository;
+
+    @Mock
+    private ImageService imageService;
 
     @InjectMocks
     private CartService cartService;
@@ -61,7 +65,7 @@ public class CartServiceTest {
         // given
         Cart cart = new Cart();
         cart.setId(1L);
-        Item item = new Item(10L, "Item1", "Desc1", "/img1.jpg", 1000L);
+        Item item = new Item(10L, "Item1", "Desc1", 1000L, null);
         CartItem cartItem = new CartItem();
         cartItem.setCart(cart);
         cartItem.setItem(item);
@@ -69,6 +73,7 @@ public class CartServiceTest {
 
         when(cartRepository.findById(1L)).thenReturn(Optional.of(cart));
         when(cartItemRepository.findByCartId(1L)).thenReturn(List.of(cartItem));
+        when(imageService.getImageUrl(10L)).thenReturn("/img1.jpg");
 
         // when
         List<ItemDto> result = cartService.getCartItems();
@@ -82,6 +87,7 @@ public class CartServiceTest {
         assertEquals(2, dto.count());
         verify(cartRepository).findById(1L);
         verify(cartItemRepository).findByCartId(1L);
+        verify(imageService).getImageUrl(10L);
     }
 
     @Test
@@ -126,8 +132,8 @@ public class CartServiceTest {
         // given
         Cart cart = new Cart();
         cart.setId(1L);
-        Item item1 = new Item(10L, "Item1", "Desc1", "/img1.jpg", 1000L);
-        Item item2 = new Item(20L, "Item2", "Desc2", "/img2.jpg", 500L);
+        Item item1 = new Item(10L, "Item1", "Desc1", 1000L, null);
+        Item item2 = new Item(20L, "Item2", "Desc2", 500L, null);
         CartItem cartItem1 = new CartItem();
         cartItem1.setCart(cart);
         cartItem1.setItem(item1);
@@ -139,6 +145,8 @@ public class CartServiceTest {
 
         when(cartRepository.findById(1L)).thenReturn(Optional.of(cart));
         when(cartItemRepository.findByCartId(1L)).thenReturn(List.of(cartItem1, cartItem2));
+        when(imageService.getImageUrl(10L)).thenReturn("/img1.jpg");
+        when(imageService.getImageUrl(20L)).thenReturn("/img2.jpg");
 
         // when
         int total = cartService.getTotal();
@@ -146,6 +154,8 @@ public class CartServiceTest {
         // then
         // (1000 * 2) + (500 * 3) = 2000 + 1500 = 3500
         assertEquals(3500, total);
+        verify(imageService).getImageUrl(10L);
+        verify(imageService).getImageUrl(20L);
     }
 
     @Test
@@ -153,7 +163,7 @@ public class CartServiceTest {
         // given
         Cart cart = new Cart();
         cart.setId(1L);
-        Item item = new Item(10L, "Item1", "Desc1", "/img1.jpg", 1000L);
+        Item item = new Item(10L, "Item1", "Desc1", 1000L, null);
         when(cartRepository.findById(1L)).thenReturn(Optional.of(cart));
         when(cartItemRepository.findByCartIdAndItemId(1L, 10L)).thenReturn(null);
         when(itemRepository.findById(10L)).thenReturn(Optional.of(item));
@@ -174,7 +184,7 @@ public class CartServiceTest {
         // given
         Cart cart = new Cart();
         cart.setId(1L);
-        Item item = new Item(10L, "Item1", "Desc1", "/img1.jpg", 1000L);
+        Item item = new Item(10L, "Item1", "Desc1", 1000L, null);
         CartItem existing = new CartItem();
         existing.setCart(cart);
         existing.setItem(item);
@@ -183,6 +193,7 @@ public class CartServiceTest {
         when(cartItemRepository.findByCartIdAndItemId(1L, 10L)).thenReturn(existing);
         when(cartItemRepository.save(existing)).thenReturn(existing);
         when(cartItemRepository.findByCartId(1L)).thenReturn(List.of(existing));
+        when(imageService.getImageUrl(10L)).thenReturn("/img1.jpg");
 
         // when
         List<ItemDto> result = cartService.actOnCartItems(10L, ActionTypeDto.PLUS);
@@ -191,6 +202,7 @@ public class CartServiceTest {
         assertEquals(3, existing.getCount());
         verify(cartItemRepository).save(existing);
         verify(cartItemRepository, never()).delete(any());
+        verify(imageService).getImageUrl(10L);
     }
 
     @Test
@@ -198,7 +210,7 @@ public class CartServiceTest {
         // given
         Cart cart = new Cart();
         cart.setId(1L);
-        Item item = new Item(10L, "Item1", "Desc1", "/img1.jpg", 1000L);
+        Item item = new Item(10L, "Item1", "Desc1", 1000L, null);
         CartItem existing = new CartItem();
         existing.setCart(cart);
         existing.setItem(item);
@@ -207,6 +219,7 @@ public class CartServiceTest {
         when(cartItemRepository.findByCartIdAndItemId(1L, 10L)).thenReturn(existing);
         when(cartItemRepository.save(existing)).thenReturn(existing);
         when(cartItemRepository.findByCartId(1L)).thenReturn(List.of(existing));
+        when(imageService.getImageUrl(10L)).thenReturn("/img1.jpg");
 
         // when
         List<ItemDto> result = cartService.actOnCartItems(10L, ActionTypeDto.MINUS);
@@ -215,6 +228,7 @@ public class CartServiceTest {
         assertEquals(1, existing.getCount());
         verify(cartItemRepository).save(existing);
         verify(cartItemRepository, never()).delete(any());
+        verify(imageService).getImageUrl(10L);
     }
 
     @Test
@@ -222,7 +236,7 @@ public class CartServiceTest {
         // given
         Cart cart = new Cart();
         cart.setId(1L);
-        Item item = new Item(10L, "Item1", "Desc1", "/img1.jpg", 1000L);
+        Item item = new Item(10L, "Item1", "Desc1", 1000L, null);
         CartItem existing = new CartItem();
         existing.setCart(cart);
         existing.setItem(item);
@@ -244,7 +258,7 @@ public class CartServiceTest {
         // given
         Cart cart = new Cart();
         cart.setId(1L);
-        Item item = new Item(10L, "Item1", "Desc1", "/img1.jpg", 1000L);
+        Item item = new Item(10L, "Item1", "Desc1", 1000L, null);
         CartItem existing = new CartItem();
         existing.setCart(cart);
         existing.setItem(item);

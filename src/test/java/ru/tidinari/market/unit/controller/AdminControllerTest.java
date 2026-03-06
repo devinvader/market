@@ -6,7 +6,9 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.tidinari.market.domain.Item;
+import ru.tidinari.market.repository.ImageRepository;
 import ru.tidinari.market.service.AdminService;
+import ru.tidinari.market.service.ImageService;
 import ru.tidinari.market.service.ItemsService;
 import ru.tidinari.market.web.controller.AdminController;
 import ru.tidinari.market.web.dto.ItemDto;
@@ -26,6 +28,9 @@ public class AdminControllerTest {
 
     @MockitoBean
     private AdminService adminService;
+
+    @MockitoBean
+    private ImageService imageService;
 
     @Autowired
     private MockMvc mockMvc;
@@ -68,7 +73,6 @@ public class AdminControllerTest {
         mockMvc.perform(post("/admin/items")
                         .param("title", "New Item")
                         .param("description", "New Description")
-                        .param("imgPath", "/new.jpg")
                         .param("price", "5000"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(view().name("redirect:/admin"));
@@ -77,7 +81,6 @@ public class AdminControllerTest {
         verify(adminService).saveItem(argThat(item ->
                 item.getTitle().equals("New Item") &&
                 item.getDescription().equals("New Description") &&
-                item.getImgPath().equals("/new.jpg") &&
                 item.getPrice() == 5000
         ));
     }
@@ -89,7 +92,6 @@ public class AdminControllerTest {
         item.setId(1L);
         item.setTitle("Item");
         item.setDescription("Desc");
-        item.setImgPath("/img.jpg");
         item.setPrice(1000L);
         when(adminService.findItemById(1L)).thenReturn(item);
 
@@ -109,7 +111,6 @@ public class AdminControllerTest {
         existingItem.setId(1L);
         existingItem.setTitle("Old");
         existingItem.setDescription("Old Desc");
-        existingItem.setImgPath("/old.jpg");
         existingItem.setPrice(1000L);
         when(adminService.findItemById(1L)).thenReturn(existingItem);
 
@@ -117,7 +118,6 @@ public class AdminControllerTest {
         mockMvc.perform(post("/admin/items/1")
                         .param("title", "Updated")
                         .param("description", "Updated Desc")
-                        .param("imgPath", "/updated.jpg")
                         .param("price", "2000"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(view().name("redirect:/admin"));
@@ -128,7 +128,6 @@ public class AdminControllerTest {
                 item.getId().equals(1L) &&
                 item.getTitle().equals("Updated") &&
                 item.getDescription().equals("Updated Desc") &&
-                item.getImgPath().equals("/updated.jpg") &&
                 item.getPrice() == 2000
         ));
     }

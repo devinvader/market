@@ -27,7 +27,7 @@ public class AdminServiceTest {
     void findItemById_ExistingId_ReturnsItem() {
         // given
         Long id = 1L;
-        Item expectedItem = new Item(id, "Test Item", "Description", "/img.jpg", 1000L);
+        Item expectedItem = new Item(id, "Test Item", "Description", 1000L, null);
         when(itemRepository.findById(id)).thenReturn(Optional.of(expectedItem));
 
         // when
@@ -56,8 +56,8 @@ public class AdminServiceTest {
     @Test
     void saveItem_ValidItem_ReturnsSavedItem() {
         // given
-        Item itemToSave = new Item(null, "New Item", "Desc", "/new.jpg", 5000L);
-        Item savedItem = new Item(1L, "New Item", "Desc", "/new.jpg", 5000L);
+        Item itemToSave = new Item(null, "New Item", "Desc", 5000L, null);
+        Item savedItem = new Item(1L, "New Item", "Desc", 5000L, null);
         when(itemRepository.save(itemToSave)).thenReturn(savedItem);
 
         // when

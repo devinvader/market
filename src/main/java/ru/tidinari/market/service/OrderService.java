@@ -33,6 +33,9 @@ public class OrderService {
     @Autowired
     private CartItemRepository cartItemRepository;
 
+    @Autowired
+    private ImageService imageService;
+
     public List<OrderDto> getOrders() {
         List<Order> orders = orderRepository.findAll();
 
@@ -40,9 +43,14 @@ public class OrderService {
             List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
             List<ItemDto> items = orderItems.stream()
                     .map(orderItem -> {
-                        ru.tidinari.market.domain.Item item = orderItem.getItem();
-                        return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), item.getImgPath(),
-                                item.getPrice(), orderItem.getCount());
+                        Item item = orderItem.getItem();
+                        return new ItemDto(
+                                item.getId(),
+                                item.getTitle(),
+                                item.getDescription(),
+                                imageService.getImageUrl(item.getId()),
+                                item.getPrice(),
+                                orderItem.getCount());
                     })
                     .collect(Collectors.toList());
             return new OrderDto(order.getId(), items, order.getTotalSum());
@@ -60,7 +68,8 @@ public class OrderService {
             List<ItemDto> items = orderItems.stream()
                     .map(orderItem -> {
                         Item item = orderItem.getItem();
-                        return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), item.getImgPath(),
+                        return new ItemDto(item.getId(), item.getTitle(), item.getDescription(),
+                                imageService.getImageUrl(item.getId()),
                                 item.getPrice(), orderItem.getCount());
                     })
                     .collect(Collectors.toList());
@@ -70,9 +79,8 @@ public class OrderService {
 
     private OrderDto createOrderFromCart(long cartId) {
         List<CartItem> cartItems = cartItemRepository.findByCartId(cartId);
-
-        // Создаем новый заказ
         Order order = new Order();
+
         long totalSum = cartItems.stream()
                 .mapToLong(cartItem -> cartItem.getItem().getPrice() * cartItem.getCount())
                 .sum();
@@ -94,8 +102,8 @@ public class OrderService {
         // Создаем OrderDto
         List<ItemDto> items = cartItems.stream()
                 .map(cartItem -> {
-                    ru.tidinari.market.domain.Item item = cartItem.getItem();
-                    return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), item.getImgPath(),
+                    Item item = cartItem.getItem();
+                    return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), imageService.getImageUrl(item.getId()),
                             item.getPrice(), cartItem.getCount());
                 })
                 .collect(Collectors.toList());

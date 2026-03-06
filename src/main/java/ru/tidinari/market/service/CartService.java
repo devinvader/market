@@ -27,6 +27,9 @@ public class CartService {
     @Autowired
     private ItemRepository itemRepository;
 
+    @Autowired
+    private ImageService imageService;
+
     public List<ItemDto> getCartItems() {
         Cart cart = cartRepository.findById(1L).orElseGet(() -> {
             Cart newCart = new Cart();
@@ -41,7 +44,7 @@ public class CartService {
         return cartItems.stream()
                 .map(cartItem -> {
                     Item item = cartItem.getItem();
-                    return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), item.getImgPath(),
+                    return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), imageService.getImageUrl(item.getId()),
                             item.getPrice(), cartItem.getCount());
                 })
                 .collect(Collectors.toList());
