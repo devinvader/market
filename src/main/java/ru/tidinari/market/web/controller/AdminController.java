@@ -1,0 +1,96 @@
+package ru.tidinari.market.web.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
+import ru.tidinari.market.domain.Item;
+import ru.tidinari.market.service.AdminService;
+import ru.tidinari.market.service.ItemsService;
+import ru.tidinari.market.web.dto.ItemDto;
+import ru.tidinari.market.web.dto.PagingDto;
+import ru.tidinari.market.web.dto.SortTypeDto;
+
+import java.util.List;
+
+@Controller
+@RequestMapping("/admin")
+public class AdminController {
+
+    @Autowired
+    private ItemsService itemsService;
+
+    @Autowired
+    private AdminService adminService;
+
+    @GetMapping
+    public ModelAndView getAdminPage(
+            @RequestParam(name = "search", required = false, defaultValue = "") String search,
+            @RequestParam(name = "sortType", required = false, defaultValue = "NO") SortTypeDto sortType,
+            @RequestParam(name = "pageNumber", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer size
+    ) {
+        ModelAndView modelAndView = new ModelAndView("admin");
+        modelAndView.addObject("search", search);
+        modelAndView.addObject("sort", sortType.name());
+        modelAndView.addObject("paging", new PagingDto(size, page, page > 1, false));
+        List<List<ItemDto>> items = itemsService.getItems(search, sortType, page, size);
+        modelAndView.addObject("items", items);
+        return modelAndView;
+    }
+
+    @GetMapping("/items/new")
+    public ModelAndView showAddItemForm() {
+        ModelAndView modelAndView = new ModelAndView("add-item");
+        modelAndView.addObject("item", new ItemDto(-1L, "", "", "", 0L, 0));
+        return modelAndView;
+    }
+
+    @PostMapping("/items")
+    public ModelAndView addItem(
+            @RequestParam String title,
+            @RequestParam String description,
+            @RequestParam String imgPath,
+            @RequestParam Long price
+    ) {
+        Item item = new Item();
+        item.setTitle(title);
+        item.setDescription(description);
+        item.setImgPath(imgPath);
+        item.setPrice(price);
+        adminService.saveItem(item);
+        return new ModelAndView("redirect:/admin");
+    }
+
+    @GetMapping("/items/{id}/edit")
+    public ModelAndView showEditItemForm(@PathVariable Long id) {
+        Item item = adminService.findItemById(id);
+        ItemDto itemDto = new ItemDto(item.getId(), item.getTitle(), item.getDescription(), item.getImgPath(), item.getPrice(), 0);
+        ModelAndView modelAndView = new ModelAndView("edit-item");
+        modelAndView.addObject("item", itemDto);
+        return modelAndView;
+    }
+
+    @PostMapping("/items/{id}")
+    public ModelAndView updateItem(
+            @PathVariable Long id,
+            @RequestParam String title,
+            @RequestParam String description,
+            @RequestParam String imgPath,
+            @RequestParam Long price
+    ) {
+        Item item = adminService.findItemById(id);
+        item.setTitle(title);
+        item.setDescription(description);
+        item.setImgPath(imgPath);
+        item.setPrice(price);
+        adminService.saveItem(item);
+        return new ModelAndView("redirect:/admin");
+    }
+
+    @PostMapping("/items/{id}/delete")
+    public ModelAndView deleteItem(@PathVariable Long id) {
+        adminService.deleteItemById(id);
+        return new ModelAndView("redirect:/admin");
+    }
+}
