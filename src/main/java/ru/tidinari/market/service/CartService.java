@@ -12,7 +12,9 @@ import ru.tidinari.market.repository.ItemRepository;
 import ru.tidinari.market.web.dto.ActionTypeDto;
 import ru.tidinari.market.web.dto.ItemDto;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,6 +55,23 @@ public class CartService {
     public int getTotal() {
         List<ItemDto> items = getCartItems();
         return items.stream().mapToInt(item -> (int) (item.price() * item.count())).sum();
+    }
+
+    public Map<Long, Integer> getItemCounts(List<Long> itemIds) {
+        Cart cart = cartRepository.findById(1L).orElseGet(() -> {
+            Cart newCart = new Cart();
+            cartRepository.save(newCart);
+            return newCart;
+        });
+        List<CartItem> cartItems = cartItemRepository.findByCartIdAndItemIdIn(cart.getId(), itemIds);
+        Map<Long, Integer> counts = new HashMap<>();
+        for (CartItem ci : cartItems) {
+            counts.put(ci.getItem().getId(), ci.getCount());
+        }
+        for (Long id : itemIds) {
+            counts.putIfAbsent(id, 0);
+        }
+        return counts;
     }
 
     public List<ItemDto> actOnCartItems(long id, ActionTypeDto action) {

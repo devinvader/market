@@ -17,6 +17,7 @@ import ru.tidinari.market.web.dto.ActionTypeDto;
 import ru.tidinari.market.web.dto.ItemDto;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -309,5 +310,54 @@ public class CartServiceTest {
         verify(cartItemRepository, never()).save(any());
         verify(cartItemRepository, never()).delete(any());
         assertTrue(result.isEmpty());
+    }
+    @Test
+    void getItemCounts_EmptyCart_ReturnsZeroForAllIds() {
+        // given
+        Cart cart = new Cart();
+        cart.setId(1L);
+        when(cartRepository.findById(1L)).thenReturn(Optional.of(cart));
+        when(cartItemRepository.findByCartIdAndItemIdIn(1L, List.of(10L, 20L, 30L)))
+                .thenReturn(List.of());
+
+        // when
+        Map<Long, Integer> counts = cartService.getItemCounts(List.of(10L, 20L, 30L));
+
+        // then
+        assertEquals(0, counts.get(10L));
+        assertEquals(0, counts.get(20L));
+        assertEquals(0, counts.get(30L));
+        verify(cartRepository).findById(1L);
+        verify(cartItemRepository).findByCartIdAndItemIdIn(1L, List.of(10L, 20L, 30L));
+    }
+
+    @Test
+    void getItemCounts_WithItems_ReturnsCorrectCounts() {
+        // given
+        Cart cart = new Cart();
+        cart.setId(1L);
+        Item item1 = new Item(10L, "Item1", "Desc1", 1000L, null);
+        Item item2 = new Item(20L, "Item2", "Desc2", 500L, null);
+        CartItem cartItem1 = new CartItem();
+        cartItem1.setCart(cart);
+        cartItem1.setItem(item1);
+        cartItem1.setCount(2);
+        CartItem cartItem2 = new CartItem();
+        cartItem2.setCart(cart);
+        cartItem2.setItem(item2);
+        cartItem2.setCount(5);
+        when(cartRepository.findById(1L)).thenReturn(Optional.of(cart));
+        when(cartItemRepository.findByCartIdAndItemIdIn(1L, List.of(10L, 20L, 30L)))
+                .thenReturn(List.of(cartItem1, cartItem2));
+
+        // when
+        Map<Long, Integer> counts = cartService.getItemCounts(List.of(10L, 20L, 30L));
+
+        // then
+        assertEquals(2, counts.get(10L));
+        assertEquals(5, counts.get(20L));
+        assertEquals(0, counts.get(30L)); // отсутствует в корзине
+        verify(cartRepository).findById(1L);
+        verify(cartItemRepository).findByCartIdAndItemIdIn(1L, List.of(10L, 20L, 30L));
     }
 }

@@ -1,29 +1,38 @@
 package ru.tidinari.market.unit.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import ru.tidinari.market.domain.Item;
 import ru.tidinari.market.repository.ItemRepository;
+import ru.tidinari.market.service.CartService;
 import ru.tidinari.market.service.ImageService;
 import ru.tidinari.market.service.ItemsService;
 import ru.tidinari.market.web.dto.ItemDto;
 import ru.tidinari.market.web.dto.SortTypeDto;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class ItemsServiceTest {
 
     @Mock
@@ -32,9 +41,18 @@ public class ItemsServiceTest {
     @Mock
     private ImageService imageService;
 
+    @Mock
+    private CartService cartService;
+
     @InjectMocks
     private ItemsService itemsService;
 
+    @BeforeEach
+    void setUp() {
+        // Стандартные моки для зависимостей, которые используются во многих тестах
+        lenient().when(imageService.getImageUrl(anyLong())).thenReturn("/img.jpg");
+        lenient().when(cartService.getItemCounts(anyList())).thenReturn(Map.of());
+    }
 
     @Test
     void getItems_EmptyResult_ReturnsEmptyList() {
