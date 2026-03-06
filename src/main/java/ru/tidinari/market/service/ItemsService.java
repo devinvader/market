@@ -22,7 +22,7 @@ public class ItemsService {
     private ItemRepository itemRepository;
 
     public List<List<ItemDto>> getItems(String search, SortTypeDto sortType, Integer page, Integer size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, sortType.getSort());
         Page<Item> itemPage = itemRepository.findByTitleContainingIgnoreCase(search, pageable);
 
         List<ItemDto> items = itemPage.getContent().stream()
@@ -36,11 +36,12 @@ public class ItemsService {
             for (int j = i; j < i + 3 && j < items.size(); j++) {
                 group.add(items.get(j));
             }
-            // Дополняем до 3 пустыми элементами, если нужно
-            while (group.size() < 3) {
-                group.add(ItemDto.empty());
-            }
             groups.add(group);
+        }
+        // В последней группе может быть недобор
+        List<ItemDto> lastGroup = groups.getLast();
+        while (lastGroup.size() < 3) {
+            lastGroup.add(ItemDto.empty());
         }
 
         return groups;
