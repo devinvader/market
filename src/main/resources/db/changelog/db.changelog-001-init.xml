@@ -1,23 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <databaseChangeLog
-        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
-        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
     <!-- Создание таблицы items -->
     <changeSet id="001-create-items-table" author="market">
         <createTable tableName="items">
             <column name="id" type="BIGINT" autoIncrement="true">
-                <constraints primaryKey="true" nullable="false"/>
+                <constraints primaryKey="true" nullable="false" />
             </column>
             <column name="title" type="VARCHAR(255)">
-                <constraints nullable="false"/>
+                <constraints nullable="false" />
             </column>
-            <column name="description" type="TEXT"/>
-            <column name="img_path" type="VARCHAR(512)"/>
+            <column name="description" type="TEXT" />
+            <column name="img_path" type="VARCHAR(512)" />
             <column name="price" type="BIGINT">
-                <constraints nullable="false"/>
+                <constraints nullable="false" />
             </column>
         </createTable>
     </changeSet>
@@ -26,10 +25,10 @@
     <changeSet id="002-create-orders-table" author="market">
         <createTable tableName="orders">
             <column name="id" type="BIGINT" autoIncrement="true">
-                <constraints primaryKey="true" nullable="false"/>
+                <constraints primaryKey="true" nullable="false" />
             </column>
             <column name="total_sum" type="BIGINT">
-                <constraints nullable="false"/>
+                <constraints nullable="false" />
             </column>
         </createTable>
     </changeSet>
@@ -39,32 +38,32 @@
         <createTable tableName="order_items">
             <column name="order_id" type="BIGINT">
                 <constraints nullable="false"
-                             foreignKeyName="fk_order_items_order_id"
-                             referencedTableName="orders"
-                             referencedColumnNames="id"/>
+                    foreignKeyName="fk_order_items_order_id"
+                    referencedTableName="orders"
+                    referencedColumnNames="id" />
             </column>
             <column name="item_id" type="BIGINT">
                 <constraints nullable="false"
-                             foreignKeyName="fk_order_items_item_id"
-                             referencedTableName="items"
-                             referencedColumnNames="id"/>
+                    foreignKeyName="fk_order_items_item_id"
+                    referencedTableName="items"
+                    referencedColumnNames="id" />
             </column>
             <column name="count" type="INT">
-                <constraints nullable="false"/>
+                <constraints nullable="false" />
             </column>
         </createTable>
-        
+
         <!-- Создание составного первичного ключа -->
-        <addPrimaryKey tableName="order_items" 
-                      columnNames="order_id, item_id" 
-                      constraintName="pk_order_items"/>
+        <addPrimaryKey tableName="order_items"
+            columnNames="order_id, item_id"
+            constraintName="pk_order_items" />
     </changeSet>
 
     <!-- Создание таблицы carts -->
     <changeSet id="004-create-carts-table" author="market">
         <createTable tableName="carts">
             <column name="id" type="BIGINT" autoIncrement="true">
-                <constraints primaryKey="true" nullable="false"/>
+                <constraints primaryKey="true" nullable="false" />
             </column>
         </createTable>
     </changeSet>
@@ -74,25 +73,52 @@
         <createTable tableName="cart_items">
             <column name="cart_id" type="BIGINT">
                 <constraints nullable="false"
-                             foreignKeyName="fk_cart_items_cart_id"
-                             referencedTableName="carts"
-                             referencedColumnNames="id"/>
+                    foreignKeyName="fk_cart_items_cart_id"
+                    referencedTableName="carts"
+                    referencedColumnNames="id" />
             </column>
             <column name="item_id" type="BIGINT">
                 <constraints nullable="false"
-                             foreignKeyName="fk_cart_items_item_id"
-                             referencedTableName="items"
-                             referencedColumnNames="id"/>
+                    foreignKeyName="fk_cart_items_item_id"
+                    referencedTableName="items"
+                    referencedColumnNames="id" />
             </column>
             <column name="count" type="INT">
-                <constraints nullable="false"/>
+                <constraints nullable="false" />
             </column>
         </createTable>
-        
+
         <!-- Создание составного первичного ключа -->
-        <addPrimaryKey tableName="cart_items" 
-                      columnNames="cart_id, item_id" 
-                      constraintName="pk_cart_items"/>
+        <addPrimaryKey tableName="cart_items"
+            columnNames="cart_id, item_id"
+            constraintName="pk_cart_items" />
+    </changeSet>
+
+    <!-- Создание таблицы images -->
+    <changeSet id="006-create-images-table" author="market">
+        <createTable tableName="images">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" />
+            </column>
+            <column name="data" type="BLOB">
+                <constraints nullable="false" />
+            </column>
+            <column name="content_type" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="item_id" type="BIGINT">
+                <constraints nullable="false"
+                    foreignKeyName="fk_images_item_id"
+                    referencedTableName="items"
+                    referencedColumnNames="id"
+                    unique="true" />
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="images"
+            baseColumnNames="item_id"
+            constraintName="fk_images_item_id"
+            referencedTableName="items"
+            referencedColumnNames="id" />
     </changeSet>
 
 </databaseChangeLog>
