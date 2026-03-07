@@ -10,6 +10,7 @@ import ru.tidinari.market.repository.ItemRepository;
 import ru.tidinari.market.web.dto.ActionTypeDto;
 import ru.tidinari.market.web.dto.ItemDto;
 import ru.tidinari.market.web.dto.SortTypeDto;
+import ru.tidinari.market.web.mapper.ItemMapper;
 
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,9 @@ public class ItemsService {
     @Autowired
     private CartService cartService;
 
+    @Autowired
+    private ItemMapper itemMapper;
+
     public List<List<ItemDto>> getItems(String search, SortTypeDto sortType, Integer page, Integer size) {
         Pageable pageable = PageRequest.of(page, size, sortType.getSort());
         Page<Item> itemPage = itemRepository.findByTitleContainingIgnoreCase(search, pageable);
@@ -39,10 +43,11 @@ public class ItemsService {
         Map<Long, Integer> counts = cartService.getItemCounts(itemIds);
 
         List<ItemDto> items = itemList.stream()
-                .map(item -> {
-                    int count = counts.getOrDefault(item.getId(), 0);
-                    return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), imageService.getImageUrl(item.getId()), item.getPrice(), count);
-                })
+                .map(item -> itemMapper.toDto(
+                        item,
+                        imageService.getImageUrl(item.getId()),
+                        counts.getOrDefault(item.getId(), 0)
+                ))
                 .collect(Collectors.toList());
 
         // Разбиваем на группы по 3 элемента
@@ -70,13 +75,13 @@ public class ItemsService {
         Item item = itemRepository.findById(id).orElseThrow(() -> new RuntimeException("Item not found"));
         Map<Long, Integer> counts = cartService.getItemCounts(List.of(id));
         int count = counts.getOrDefault(id, 0);
-        return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), imageService.getImageUrl(id), item.getPrice(), count);
+        return itemMapper.toDto(item, imageService.getImageUrl(id), count);
     }
 
     public ItemDto actOnItem(long id, ActionTypeDto action) {
         Item item = itemRepository.findById(id).orElseThrow(() -> new RuntimeException("Item not found"));
         Map<Long, Integer> counts = cartService.getItemCounts(List.of(id));
         int count = counts.getOrDefault(id, 0);
-        return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), imageService.getImageUrl(id), item.getPrice(), count);
+        return itemMapper.toDto(item, imageService.getImageUrl(id), count);
     }
 }

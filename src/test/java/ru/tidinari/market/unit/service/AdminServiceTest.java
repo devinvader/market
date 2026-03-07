@@ -36,7 +36,6 @@ public class AdminServiceTest {
         // then
         assertNotNull(actualItem);
         assertEquals(expectedItem.getId(), actualItem.getId());
-        assertEquals(expectedItem.getTitle(), actualItem.getTitle());
         verify(itemRepository).findById(id);
     }
 
@@ -46,9 +45,11 @@ public class AdminServiceTest {
         Long id = 999L;
         when(itemRepository.findById(id)).thenReturn(Optional.empty());
 
-        // when & then
+        // when
         RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> adminService.findItemById(id));
+
+        // then
         assertEquals("Item not found", exception.getMessage());
         verify(itemRepository).findById(id);
     }

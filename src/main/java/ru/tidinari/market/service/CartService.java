@@ -11,6 +11,7 @@ import ru.tidinari.market.repository.CartRepository;
 import ru.tidinari.market.repository.ItemRepository;
 import ru.tidinari.market.web.dto.ActionTypeDto;
 import ru.tidinari.market.web.dto.ItemDto;
+import ru.tidinari.market.web.mapper.ItemMapper;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +33,9 @@ public class CartService {
     @Autowired
     private ImageService imageService;
 
+    @Autowired
+    private ItemMapper itemMapper;
+
     public List<ItemDto> getCartItems() {
         Cart cart = cartRepository.findById(1L).orElseGet(() -> {
             Cart newCart = new Cart();
@@ -44,11 +48,11 @@ public class CartService {
 
         // Преобразуем в ItemDto
         return cartItems.stream()
-                .map(cartItem -> {
-                    Item item = cartItem.getItem();
-                    return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), imageService.getImageUrl(item.getId()),
-                            item.getPrice(), cartItem.getCount());
-                })
+                .map(cartItem -> itemMapper.toDto(
+                        cartItem.getItem(),
+                        imageService.getImageUrl(cartItem.getItem().getId()),
+                        cartItem.getCount()
+                ))
                 .collect(Collectors.toList());
     }
 

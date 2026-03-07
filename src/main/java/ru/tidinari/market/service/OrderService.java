@@ -3,9 +3,7 @@ package ru.tidinari.market.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import ru.tidinari.market.domain.Cart;
 import ru.tidinari.market.domain.CartItem;
-import ru.tidinari.market.domain.Item;
 import ru.tidinari.market.domain.Order;
 import ru.tidinari.market.domain.OrderItem;
 import ru.tidinari.market.repository.CartItemRepository;
@@ -14,6 +12,7 @@ import ru.tidinari.market.repository.OrderItemRepository;
 import ru.tidinari.market.repository.OrderRepository;
 import ru.tidinari.market.web.dto.ItemDto;
 import ru.tidinari.market.web.dto.OrderDto;
+import ru.tidinari.market.web.mapper.ItemMapper;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,22 +35,20 @@ public class OrderService {
     @Autowired
     private ImageService imageService;
 
+    @Autowired
+    private ItemMapper itemMapper;
+
     public List<OrderDto> getOrders() {
         List<Order> orders = orderRepository.findAll();
 
         return orders.stream().map(order -> {
             List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
             List<ItemDto> items = orderItems.stream()
-                    .map(orderItem -> {
-                        Item item = orderItem.getItem();
-                        return new ItemDto(
-                                item.getId(),
-                                item.getTitle(),
-                                item.getDescription(),
-                                imageService.getImageUrl(item.getId()),
-                                item.getPrice(),
-                                orderItem.getCount());
-                    })
+                    .map(orderItem -> itemMapper.toDto(
+                            orderItem.getItem(),
+                            imageService.getImageUrl(orderItem.getItem().getId()),
+                            orderItem.getCount()
+                    ))
                     .collect(Collectors.toList());
             return new OrderDto(order.getId(), items, order.getTotalSum());
         }).collect(Collectors.toList());
@@ -66,12 +63,11 @@ public class OrderService {
             Order order = orderRepository.findById(id).orElseThrow(() -> new RuntimeException("Order not found"));
             List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
             List<ItemDto> items = orderItems.stream()
-                    .map(orderItem -> {
-                        Item item = orderItem.getItem();
-                        return new ItemDto(item.getId(), item.getTitle(), item.getDescription(),
-                                imageService.getImageUrl(item.getId()),
-                                item.getPrice(), orderItem.getCount());
-                    })
+                    .map(orderItem -> itemMapper.toDto(
+                            orderItem.getItem(),
+                            imageService.getImageUrl(orderItem.getItem().getId()),
+                            orderItem.getCount()
+                    ))
                     .collect(Collectors.toList());
             return new OrderDto(order.getId(), items, order.getTotalSum());
         }
@@ -101,11 +97,11 @@ public class OrderService {
 
         // Создаем OrderDto
         List<ItemDto> items = cartItems.stream()
-                .map(cartItem -> {
-                    Item item = cartItem.getItem();
-                    return new ItemDto(item.getId(), item.getTitle(), item.getDescription(), imageService.getImageUrl(item.getId()),
-                            item.getPrice(), cartItem.getCount());
-                })
+                .map(cartItem -> itemMapper.toDto(
+                        cartItem.getItem(),
+                        imageService.getImageUrl(cartItem.getItem().getId()),
+                        cartItem.getCount()
+                ))
                 .collect(Collectors.toList());
 
         return new OrderDto(order.getId(), items, totalSum);
