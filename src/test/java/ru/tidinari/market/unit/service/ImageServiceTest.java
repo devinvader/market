@@ -31,7 +31,7 @@ public class ImageServiceTest {
     private ImageService imageService;
 
     private final Long ITEM_ID = 1L;
-    private final Long IMAGE_ID = 100L;
+    private final Long IMAGE_ID = 2L;
 
     @Test
     void saveImage_newItemAndNoExistingImage_createsAndReturnsImage() throws IOException {
@@ -42,7 +42,6 @@ public class ImageServiceTest {
         String contentType = "image/jpeg";
 
         when(itemRepository.findById(ITEM_ID)).thenReturn(Optional.of(item));
-        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(null);
         when(file.getBytes()).thenReturn(fileData);
         when(file.getContentType()).thenReturn(contentType);
 
@@ -63,7 +62,6 @@ public class ImageServiceTest {
         assertEquals(item, result.getItem());
 
         verify(itemRepository).findById(ITEM_ID);
-        verify(imageRepository).findByItemId(ITEM_ID);
         verify(imageRepository).save(any(Image.class));
     }
 
@@ -78,7 +76,7 @@ public class ImageServiceTest {
         Image existingImage = new Image(IMAGE_ID, "old data".getBytes(), "image/jpeg", item);
 
         when(itemRepository.findById(ITEM_ID)).thenReturn(Optional.of(item));
-        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(existingImage);
+        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(Optional.of(existingImage));
         when(file.getBytes()).thenReturn(fileData);
         when(file.getContentType()).thenReturn(contentType);
         when(imageRepository.save(existingImage)).thenReturn(existingImage);
@@ -91,7 +89,7 @@ public class ImageServiceTest {
         assertArrayEquals(fileData, existingImage.getData());
         assertEquals(contentType, existingImage.getContentType());
 
-        verify(imageRepository).save(existingImage);
+        verify(imageRepository).save(new Image(IMAGE_ID, existingImage.getData(), existingImage.getContentType(), item));
     }
 
     @Test
@@ -113,7 +111,7 @@ public class ImageServiceTest {
     void getImageByItemId_existing_returnsImage() {
         // given
         Image image = new Image(IMAGE_ID, new byte[0], "image/jpeg", new Item());
-        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(image);
+        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(Optional.of(image));
 
         // when
         Image result = imageService.getImageByItemId(ITEM_ID);
@@ -126,7 +124,7 @@ public class ImageServiceTest {
     @Test
     void getImageByItemId_notFound_returnsNull() {
         // given
-        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(null);
+        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(Optional.empty());
 
         // when
         Image result = imageService.getImageByItemId(ITEM_ID);
@@ -139,20 +137,19 @@ public class ImageServiceTest {
     @Test
     void deleteImageByItemId_existing_deletesImage() {
         // given
-        Image image = new Image(IMAGE_ID, new byte[0], "image/jpeg", new Item());
-        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(image);
+        when(imageRepository.findIdByItemId(ITEM_ID)).thenReturn(IMAGE_ID);
 
         // when
         imageService.deleteImageByItemId(ITEM_ID);
 
         // then
-        verify(imageRepository).delete(image);
+        verify(imageRepository).deleteById(IMAGE_ID);
     }
 
     @Test
     void deleteImageByItemId_notFound_doesNothing() {
         // given
-        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(null);
+        when(imageRepository.findIdByItemId(ITEM_ID)).thenReturn(null);
 
         // when
         imageService.deleteImageByItemId(ITEM_ID);
@@ -165,7 +162,7 @@ public class ImageServiceTest {
     void getImageUrl_existing_returnsUrl() {
         // given
         Image image = new Image(IMAGE_ID, new byte[0], "image/jpeg", new Item());
-        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(image);
+        when(imageRepository.findIdByItemId(ITEM_ID)).thenReturn(image.getId());
 
         // when
         String url = imageService.getImageUrl(ITEM_ID);
