@@ -1,5 +1,6 @@
 package ru.tidinari.market.web.controller;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,13 +13,11 @@ import ru.tidinari.market.service.ItemsService;
 import ru.tidinari.market.web.dto.*;
 
 @Controller
+@RequiredArgsConstructor
 public class ItemsController {
 
-    @Autowired
-    private ItemsService itemsService;
-    
-    @Autowired
-    private CartService cartService;
+    private final ItemsService itemsService;
+    private final CartService cartService;
 
     @GetMapping(path = {"/", "/items"})
     public ModelAndView getItems(
@@ -77,7 +76,7 @@ public class ItemsController {
 
     @PostMapping("/buy")
     public ModelAndView buyItems() {
-        long cartId = 1;
+        long cartId = cartService.getUserCart().getId();
         ModelAndView modelAndView = new ModelAndView("redirect:/orders/" + cartId);
         modelAndView.addObject("newOrder", true);
         return modelAndView;

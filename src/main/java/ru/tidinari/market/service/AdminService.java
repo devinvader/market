@@ -1,15 +1,15 @@
 package ru.tidinari.market.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.tidinari.market.domain.Item;
 import ru.tidinari.market.repository.ItemRepository;
 
 @Service
+@RequiredArgsConstructor
 public class AdminService {
 
-    @Autowired
-    private ItemRepository itemRepository;
+    private final ItemRepository itemRepository;
 
     public Item findItemById(Long id) {
         return itemRepository.findById(id)

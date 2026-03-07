@@ -1,5 +1,6 @@
 package ru.tidinari.market.web.controller;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -12,10 +13,10 @@ import ru.tidinari.market.domain.Image;
 import ru.tidinari.market.service.ImageService;
 
 @Controller
+@RequiredArgsConstructor
 public class ImageController {
 
-    @Autowired
-    private ImageService imageService;
+    private final ImageService imageService;
 
     @GetMapping("/items/{id}/image")
     public ResponseEntity<byte[]> getImage(@PathVariable Long id) {

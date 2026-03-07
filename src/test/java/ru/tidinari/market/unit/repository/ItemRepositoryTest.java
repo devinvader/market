@@ -3,7 +3,6 @@ package ru.tidinari.market.unit.repository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.test.context.jdbc.Sql;
 import ru.tidinari.market.domain.Item;
 import ru.tidinari.market.repository.ItemRepository;
 
@@ -14,7 +13,7 @@ public class ItemRepositoryTest extends BaseRepositoryTest {
     private ItemRepository itemRepository;
 
     @Test
-    public void testSaveAndFindById() {
+    public void saveAndFindById_givenItem_whenSave_thenFindById() {
         // given
         Item item = new Item();
         item.setTitle("Test Item");
@@ -31,7 +30,7 @@ public class ItemRepositoryTest extends BaseRepositoryTest {
     }
 
     @Test
-    public void testFindByTitleContainingIgnoreCase() {
+    public void searchByTitleOrDescription_givenItems_whenSearch_thenReturnMatching() {
         // given
         Item item1 = new Item();
         item1.setTitle("Apple iPhone");
@@ -44,7 +43,7 @@ public class ItemRepositoryTest extends BaseRepositoryTest {
         itemRepository.save(item2);
 
         // when
-        var page = itemRepository.findByTitleContainingIgnoreCase("apple", PageRequest.of(0, 10));
+        var page = itemRepository.searchByTitleOrDescription("apple", PageRequest.of(0, 10));
 
         // then
         assertThat(page.getContent()).hasSize(1);
@@ -52,7 +51,7 @@ public class ItemRepositoryTest extends BaseRepositoryTest {
     }
 
     @Test
-    public void testDelete() {
+    public void delete_givenItem_whenDelete_thenNotFound() {
         // given
         Item item = new Item();
         item.setTitle("Test Item");

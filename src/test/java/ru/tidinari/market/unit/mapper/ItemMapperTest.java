@@ -6,7 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import ru.tidinari.market.domain.Item;
 import ru.tidinari.market.web.dto.ItemDto;
-import ru.tidinari.market.web.mapper.ItemMapper;
+import ru.tidinari.market.mapper.ItemMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -16,7 +16,7 @@ class ItemMapperTest {
     private ItemMapper itemMapper;
 
     @Test
-    void toDto() {
+    void toDto_withValidItem_returnsCorrectDto() {
         Item item = new Item();
         item.setId(1L);
         item.setTitle("Test Item");
@@ -35,7 +35,7 @@ class ItemMapperTest {
 
 
     @Test
-    void differentParameters_toDto() {
+    void toDto_withDifferentParameters_returnsCorrectDto() {
         Item item = new Item();
         item.setId(10L);
         item.setTitle("Item");

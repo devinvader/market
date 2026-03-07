@@ -1,6 +1,6 @@
 package ru.tidinari.market.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import ru.tidinari.market.domain.Cart;
@@ -11,7 +11,7 @@ import ru.tidinari.market.repository.CartRepository;
 import ru.tidinari.market.repository.ItemRepository;
 import ru.tidinari.market.web.dto.ActionTypeDto;
 import ru.tidinari.market.web.dto.ItemDto;
-import ru.tidinari.market.web.mapper.ItemMapper;
+import ru.tidinari.market.mapper.ItemMapper;
 
 import java.util.HashMap;
 import java.util.List;
@@ -19,35 +19,21 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CartService {
 
-    @Autowired
-    private CartRepository cartRepository;
+    private final CartRepository cartRepository;
+    private final CartItemRepository cartItemRepository;
+    private final ItemRepository itemRepository;
+    private final ImageService imageService;
+    private final ItemMapper itemMapper;
 
-    @Autowired
-    private CartItemRepository cartItemRepository;
-
-    @Autowired
-    private ItemRepository itemRepository;
-
-    @Autowired
-    private ImageService imageService;
-
-    @Autowired
-    private ItemMapper itemMapper;
+    // т.к. у нас пока нет ни пользователей, ни сессии, используем один cartId
+    private final long DEFAUL_CART_ID = 1L;
 
     public List<ItemDto> getCartItems() {
-        Cart cart = cartRepository.findById(1L).orElseGet(() -> {
-            Cart newCart = new Cart();
-            cartRepository.save(newCart);
-            return newCart;
-        });
-
-        // Получаем элементы корзины
-        List<CartItem> cartItems = cartItemRepository.findByCartId(cart.getId());
-
-        // Преобразуем в ItemDto
-        return cartItems.stream()
+        Cart cart = getUserCart();
+        return cartItemRepository.findByCartId(cart.getId()).stream()
                 .map(cartItem -> itemMapper.toDto(
                         cartItem.getItem(),
                         imageService.getImageUrl(cartItem.getItem().getId()),
@@ -62,11 +48,7 @@ public class CartService {
     }
 
     public Map<Long, Integer> getItemCounts(List<Long> itemIds) {
-        Cart cart = cartRepository.findById(1L).orElseGet(() -> {
-            Cart newCart = new Cart();
-            cartRepository.save(newCart);
-            return newCart;
-        });
+        Cart cart = getUserCart();
         List<CartItem> cartItems = cartItemRepository.findByCartIdAndItemIdIn(cart.getId(), itemIds);
         Map<Long, Integer> counts = new HashMap<>();
         for (CartItem ci : cartItems) {
@@ -79,27 +61,17 @@ public class CartService {
     }
 
     public List<ItemDto> actOnCartItems(long id, ActionTypeDto action) {
-        // Получаем корзину пользователя (для простоты используем ID = 1)
-        Cart cart = cartRepository.findById(1L).orElseGet(() -> {
-            Cart newCart = new Cart();
-            cartRepository.save(newCart);
-            return newCart;
-        });
-
-        // Проверяем, существует ли элемент в корзине
+        Cart cart = getUserCart();
         CartItem cartItem = cartItemRepository.findByCartIdAndItemId(cart.getId(), id);
-
         switch (action) {
             case PLUS:
                 if (cartItem == null) {
-                    // Создаем новый элемент корзины
                     Item item = itemRepository.findById(id).orElseThrow(() -> new RuntimeException("Item not found"));
                     cartItem = new CartItem();
                     cartItem.setCart(cart);
                     cartItem.setItem(item);
                     cartItem.setCount(1);
                 } else {
-                    // Увеличиваем количество
                     cartItem.setCount(cartItem.getCount() + 1);
                 }
                 cartItemRepository.save(cartItem);
@@ -107,11 +79,9 @@ public class CartService {
             case MINUS:
                 if (cartItem != null) {
                     if (cartItem.getCount() > 1) {
-                        // Уменьшаем количество
                         cartItem.setCount(cartItem.getCount() - 1);
                         cartItemRepository.save(cartItem);
                     } else {
-                        // Удаляем элемент из корзины
                         cartItemRepository.delete(cartItem);
                     }
                 }
@@ -124,5 +94,13 @@ public class CartService {
         }
 
         return getCartItems();
+    }
+
+    public Cart getUserCart() {
+        return cartRepository.findById(DEFAUL_CART_ID).orElseGet(() -> {
+            Cart newCart = new Cart();
+            cartRepository.save(newCart);
+            return newCart;
+        });
     }
 }

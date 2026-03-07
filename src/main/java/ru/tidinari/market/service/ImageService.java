@@ -1,5 +1,6 @@
 package ru.tidinari.market.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -11,13 +12,11 @@ import ru.tidinari.market.repository.ItemRepository;
 import java.io.IOException;
 
 @Service
+@RequiredArgsConstructor
 public class ImageService {
 
-    @Autowired
-    private ImageRepository imageRepository;
-
-    @Autowired
-    private ItemRepository itemRepository;
+    private final ImageRepository imageRepository;
+    private final ItemRepository itemRepository;
 
     public Image saveImage(Long itemId, MultipartFile file) throws IOException {
         Item item = itemRepository.findById(itemId)

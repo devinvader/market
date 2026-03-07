@@ -1,5 +1,6 @@
 package ru.tidinari.market.service;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -10,30 +11,24 @@ import ru.tidinari.market.repository.ItemRepository;
 import ru.tidinari.market.web.dto.ActionTypeDto;
 import ru.tidinari.market.web.dto.ItemDto;
 import ru.tidinari.market.web.dto.SortTypeDto;
-import ru.tidinari.market.web.mapper.ItemMapper;
+import ru.tidinari.market.mapper.ItemMapper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ItemsService {
-
-    @Autowired
-    private ItemRepository itemRepository;
-
-    @Autowired
-    private ImageService imageService;
-
-    @Autowired
-    private CartService cartService;
-
-    @Autowired
-    private ItemMapper itemMapper;
+    private final ItemRepository itemRepository;
+    private final ImageService imageService;
+    private final CartService cartService;
+    private final ItemMapper itemMapper;
 
     public List<List<ItemDto>> getItems(String search, SortTypeDto sortType, Integer page, Integer size) {
         Pageable pageable = PageRequest.of(page, size, sortType.getSort());
-        Page<Item> itemPage = itemRepository.findByTitleContainingIgnoreCase(search, pageable);
+        Page<Item> itemPage = itemRepository.searchByTitleOrDescription(search, pageable);
         List<Item> itemList = itemPage.getContent();
         
         // Собираем IDs товаров
@@ -48,12 +43,12 @@ public class ItemsService {
                         imageService.getImageUrl(item.getId()),
                         counts.getOrDefault(item.getId(), 0)
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
         // Разбиваем на группы по 3 элемента
-        List<List<ItemDto>> groups = new java.util.ArrayList<>();
+        List<List<ItemDto>> groups = new ArrayList<>();
         for (int i = 0; i < items.size(); i += 3) {
-            List<ItemDto> group = new java.util.ArrayList<>();
+            List<ItemDto> group = new ArrayList<>();
             for (int j = i; j < i + 3 && j < items.size(); j++) {
                 group.add(items.get(j));
             }
@@ -72,13 +67,6 @@ public class ItemsService {
     }
 
     public ItemDto getItem(long id) {
-        Item item = itemRepository.findById(id).orElseThrow(() -> new RuntimeException("Item not found"));
-        Map<Long, Integer> counts = cartService.getItemCounts(List.of(id));
-        int count = counts.getOrDefault(id, 0);
-        return itemMapper.toDto(item, imageService.getImageUrl(id), count);
-    }
-
-    public ItemDto actOnItem(long id, ActionTypeDto action) {
         Item item = itemRepository.findById(id).orElseThrow(() -> new RuntimeException("Item not found"));
         Map<Long, Integer> counts = cartService.getItemCounts(List.of(id));
         int count = counts.getOrDefault(id, 0);

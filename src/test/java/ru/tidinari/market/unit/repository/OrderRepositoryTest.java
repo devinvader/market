@@ -2,7 +2,6 @@ package ru.tidinari.market.unit.repository;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.jdbc.Sql;
 import ru.tidinari.market.domain.Order;
 import ru.tidinari.market.repository.OrderRepository;
 
@@ -13,7 +12,7 @@ public class OrderRepositoryTest extends BaseRepositoryTest {
     private OrderRepository orderRepository;
 
     @Test
-    public void testSaveAndFindById() {
+    public void saveAndFindById_givenOrder_whenSave_thenFindById() {
         // given
         Order order = new Order();
         order.setTotalSum(1000L);
@@ -28,7 +27,7 @@ public class OrderRepositoryTest extends BaseRepositoryTest {
     }
 
     @Test
-    public void testDelete() {
+    public void delete_givenOrder_whenDelete_thenNotFound() {
         // given
         Order order = new Order();
         order.setTotalSum(1000L);

@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import ru.tidinari.market.domain.Cart;
 import ru.tidinari.market.service.CartService;
 import ru.tidinari.market.service.ItemsService;
 import ru.tidinari.market.web.controller.ItemsController;
@@ -110,6 +111,8 @@ public class ItemsControllerTest {
 
     @Test
     public void buyItems_shouldRedirectToOrder() throws Exception {
+        // given
+        when(cartService.getUserCart()).thenReturn(new Cart(1L, List.of()));
         // when
         mockMvc.perform(post("/buy"))
         // then

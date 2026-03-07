@@ -26,7 +26,7 @@ public class OrderItemRepositoryTest extends BaseRepositoryTest {
     private ItemRepository itemRepository;
 
     @Test
-    public void testSaveAndFindById() {
+    public void saveAndFindById_givenOrderItem_whenSave_thenFindById() {
         // given
         Order order = new Order();
         order.setTotalSum(1000L);
@@ -43,7 +43,7 @@ public class OrderItemRepositoryTest extends BaseRepositoryTest {
         orderItem.setCount(2);
 
         // when
-        OrderItem savedOrderItem = orderItemRepository.save(orderItem);
+        orderItemRepository.save(orderItem);
         OrderItemId orderItemId = new OrderItemId(savedOrder.getId(), savedItem.getId());
         OrderItem foundOrderItem = orderItemRepository.findById(orderItemId).orElse(null);
 
@@ -53,7 +53,7 @@ public class OrderItemRepositoryTest extends BaseRepositoryTest {
     }
 
     @Test
-    public void testFindByOrderId() {
+    public void findByOrderId_givenOrderItem_whenFind_thenReturnList() {
         // given
         Order order = new Order();
         order.setTotalSum(1000L);
@@ -79,7 +79,7 @@ public class OrderItemRepositoryTest extends BaseRepositoryTest {
     }
 
     @Test
-    public void testDelete() {
+    public void delete_givenOrderItem_whenDelete_thenNotFound() {
         // given
         Order order = new Order();
         order.setTotalSum(1000L);
@@ -94,7 +94,7 @@ public class OrderItemRepositoryTest extends BaseRepositoryTest {
         orderItem.setOrder(savedOrder);
         orderItem.setItem(savedItem);
         orderItem.setCount(2);
-        OrderItem savedOrderItem = orderItemRepository.save(orderItem);
+        orderItemRepository.save(orderItem);
 
         // when
         OrderItemId orderItemId = new OrderItemId(savedOrder.getId(), savedItem.getId());

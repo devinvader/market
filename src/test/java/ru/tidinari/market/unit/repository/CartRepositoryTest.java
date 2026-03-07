@@ -2,7 +2,6 @@ package ru.tidinari.market.unit.repository;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.jdbc.Sql;
 import ru.tidinari.market.domain.Cart;
 import ru.tidinari.market.repository.CartRepository;
 
@@ -13,7 +12,7 @@ public class CartRepositoryTest extends BaseRepositoryTest {
     private CartRepository cartRepository;
 
     @Test
-    public void testSaveAndFindById() {
+    public void saveAndFindById_givenCart_whenSave_thenFindById() {
         // given
         Cart cart = new Cart();
 
@@ -27,7 +26,7 @@ public class CartRepositoryTest extends BaseRepositoryTest {
     }
 
     @Test
-    public void testDelete() {
+    public void delete_givenCart_whenDelete_thenNotFound() {
         // given
         Cart cart = new Cart();
         Cart savedCart = cartRepository.save(cart);

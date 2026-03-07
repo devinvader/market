@@ -1,6 +1,6 @@
 package ru.tidinari.market.web.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,16 +18,12 @@ import java.util.List;
 
 @Controller
 @RequestMapping("/admin")
+@RequiredArgsConstructor
 public class AdminController {
 
-    @Autowired
-    private ItemsService itemsService;
-
-    @Autowired
-    private AdminService adminService;
-
-    @Autowired
-    private ImageService imageService;
+    private final ItemsService itemsService;
+    private final AdminService adminService;
+    private final ImageService imageService;
 
     @GetMapping
     public ModelAndView getAdminPage(

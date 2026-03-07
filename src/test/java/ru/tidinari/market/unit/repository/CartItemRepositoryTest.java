@@ -25,7 +25,7 @@ public class CartItemRepositoryTest extends BaseRepositoryTest {
     private ItemRepository itemRepository;
 
     @Test
-    public void testSaveAndFindById() {
+    public void saveAndFindById_givenCartAndItem_whenSave_thenFindById() {
         // given
         Cart cart = new Cart();
         Cart savedCart = cartRepository.save(cart);
@@ -51,7 +51,7 @@ public class CartItemRepositoryTest extends BaseRepositoryTest {
     }
 
     @Test
-    public void testFindByCartId() {
+    public void findByCartId_givenCartWithItems_whenFind_thenReturnList() {
         // given
         Cart cart = new Cart();
         Cart savedCart = cartRepository.save(cart);
@@ -76,7 +76,7 @@ public class CartItemRepositoryTest extends BaseRepositoryTest {
     }
 
     @Test
-    public void testFindByCartIdAndItemId() {
+    public void findByCartIdAndItemId_givenCartItem_whenFind_thenReturnItem() {
         // given
         Cart cart = new Cart();
         Cart savedCart = cartRepository.save(cart);
@@ -101,7 +101,7 @@ public class CartItemRepositoryTest extends BaseRepositoryTest {
     }
 
     @Test
-    public void testDelete() {
+    public void delete_givenCartItem_whenDelete_thenNotFound() {
         // given
         Cart cart = new Cart();
         Cart savedCart = cartRepository.save(cart);

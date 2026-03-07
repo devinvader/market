@@ -18,7 +18,7 @@ import ru.tidinari.market.service.CartService;
 import ru.tidinari.market.service.ImageService;
 import ru.tidinari.market.web.dto.ActionTypeDto;
 import ru.tidinari.market.web.dto.ItemDto;
-import ru.tidinari.market.web.mapper.ItemMapper;
+import ru.tidinari.market.mapper.ItemMapper;
 
 import java.util.List;
 import java.util.Map;
@@ -53,7 +53,7 @@ public class CartServiceTest {
     private final Long CART_ID = 1L;
 
     @Test
-    void getCartItems_EmptyCart_ReturnsEmptyList() {
+    void getCartItems_emptyCart_returnsEmptyList() {
         // given
         Cart cart = new Cart();
         cart.setId(CART_ID);
@@ -70,7 +70,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void getCartItems_WithItems_ReturnsItemDtos() {
+    void getCartItems_withItems_returnsItemDtos() {
         // given
         Cart cart = new Cart();
         cart.setId(CART_ID);
@@ -98,7 +98,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void getCartItems_CartNotExists_CreatesNewCart() {
+    void getCartItems_cartNotExists_createsNewCart() {
         // given
         when(cartRepository.findById(CART_ID)).thenReturn(Optional.empty());
         doAnswer(inv -> {
@@ -118,7 +118,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void getTotal_EmptyCart_ReturnsZero() {
+    void getTotal_emptyCart_returnsZero() {
         // given
         Cart cart = new Cart();
         cart.setId(CART_ID);
@@ -133,7 +133,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void getTotal_WithItems_ReturnsCorrectSum() {
+    void getTotal_withItems_returnsCorrectSum() {
         // given
         Cart cart = new Cart();
         cart.setId(CART_ID);
@@ -163,7 +163,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void actOnCartItems_Plus_NewItem_AddsItem() {
+    void actOnCartItems_plus_newItem_addsItem() {
         // given
         Cart cart = new Cart();
         cart.setId(CART_ID);
@@ -189,7 +189,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void actOnCartItems_Plus_ExistingItem_IncreasesCount() {
+    void actOnCartItems_plus_existingItem_increasesCount() {
         // given
         Cart cart = new Cart();
         cart.setId(CART_ID);
@@ -216,7 +216,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void actOnCartItems_Plus_ItemNotFound_ThrowsException() {
+    void actOnCartItems_plus_itemNotFound_throwsException() {
         // given
         Cart cart = new Cart();
         cart.setId(CART_ID);
@@ -234,7 +234,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void actOnCartItems_CartNotExists_CreatesNewCartAndAddsItem() {
+    void actOnCartItems_cartNotExists_createsNewCartAndAddsItem() {
         // given
         long cartId = 1L;
         Cart savedCart = new Cart();
@@ -266,7 +266,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void actOnCartItems_Minus_CountMoreThanOne_DecreasesCount() {
+    void actOnCartItems_minus_countMoreThanOne_decreasesCount() {
         // given
         Cart cart = new Cart();
         cart.setId(CART_ID);
@@ -294,7 +294,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void actOnCartItems_Minus_CountEqualsOne_DeletesItem() {
+    void actOnCartItems_minus_countEqualsOne_deletesItem() {
         // given
         Cart cart = new Cart();
         cart.setId(CART_ID);
@@ -318,7 +318,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void actOnCartItems_Delete_ExistingItem_DeletesItem() {
+    void actOnCartItems_delete_existingItem_deletesItem() {
         // given
         Cart cart = new Cart();
         cart.setId(CART_ID);
@@ -342,7 +342,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void actOnCartItems_Minus_NoItem_DoesNothing() {
+    void actOnCartItems_minus_noItem_doesNothing() {
         // given
         Cart cart = new Cart();
         cart.setId(CART_ID);
@@ -360,7 +360,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void actOnCartItems_Delete_NoItem_DoesNothing() {
+    void actOnCartItems_delete_noItem_doesNothing() {
         // given
         Cart cart = new Cart();
         cart.setId(CART_ID);
@@ -378,7 +378,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void getItemCounts_EmptyCart_ReturnsZeroForAllIds() {
+    void getItemCounts_emptyCart_returnsZeroForAllIds() {
         // given
         Cart cart = new Cart();
         cart.setId(CART_ID);
@@ -397,7 +397,7 @@ public class CartServiceTest {
     }
 
     @Test
-    void getItemCounts_WithItems_ReturnsCorrectCounts() {
+    void getItemCounts_withItems_returnsCorrectCounts() {
         // given
         Cart cart = new Cart();
         cart.setId(CART_ID);

@@ -1,4 +1,4 @@
-package ru.tidinari.market.web.mapper;
+package ru.tidinari.market.mapper;
 
 import org.springframework.stereotype.Component;
 import ru.tidinari.market.domain.Item;

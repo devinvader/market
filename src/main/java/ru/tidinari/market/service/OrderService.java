@@ -1,42 +1,32 @@
 package ru.tidinari.market.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import ru.tidinari.market.domain.CartItem;
 import ru.tidinari.market.domain.Order;
 import ru.tidinari.market.domain.OrderItem;
+import ru.tidinari.market.mapper.OrderItemMapper;
 import ru.tidinari.market.repository.CartItemRepository;
-import ru.tidinari.market.repository.CartRepository;
 import ru.tidinari.market.repository.OrderItemRepository;
 import ru.tidinari.market.repository.OrderRepository;
 import ru.tidinari.market.web.dto.ItemDto;
 import ru.tidinari.market.web.dto.OrderDto;
-import ru.tidinari.market.web.mapper.ItemMapper;
+import ru.tidinari.market.mapper.ItemMapper;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class OrderService {
 
-    @Autowired
-    private OrderRepository orderRepository;
-
-    @Autowired
-    private OrderItemRepository orderItemRepository;
-
-    @Autowired
-    private CartRepository cartRepository;
-
-    @Autowired
-    private CartItemRepository cartItemRepository;
-
-    @Autowired
-    private ImageService imageService;
-
-    @Autowired
-    private ItemMapper itemMapper;
+    private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final CartItemRepository cartItemRepository;
+    private final ImageService imageService;
+    private final ItemMapper itemMapper;
+    private final OrderItemMapper orderMapper;
 
     public List<OrderDto> getOrders() {
         List<Order> orders = orderRepository.findAll();
@@ -54,7 +44,7 @@ public class OrderService {
         }).collect(Collectors.toList());
     }
 
-    public OrderDto getOrder(long id, boolean newOrder) {
+    public OrderDto getOrCreateOrder(long id, boolean newOrder) {
         if (newOrder) {
             // Создаем новый заказ из корзины
             return createOrderFromCart(id);
@@ -75,27 +65,21 @@ public class OrderService {
 
     private OrderDto createOrderFromCart(long cartId) {
         List<CartItem> cartItems = cartItemRepository.findByCartId(cartId);
-        Order order = new Order();
 
         long totalSum = cartItems.stream()
                 .mapToLong(cartItem -> cartItem.getItem().getPrice() * cartItem.getCount())
                 .sum();
-        order.setTotalSum(totalSum);
-        order = orderRepository.save(order);
+        final Order order = orderRepository.save(new Order(null, totalSum, null));
 
         // Создаем элементы заказа
-        for (CartItem cartItem : cartItems) {
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setItem(cartItem.getItem());
-            orderItem.setCount(cartItem.getCount());
-            orderItemRepository.save(orderItem);
-        }
+        orderItemRepository.saveAll(
+                cartItems.stream()
+                        .map(cartItem -> orderMapper.fromDto(order, cartItem))
+                        .toList());
 
-        // Очищаем корзину
+        // Cart должна быть очищена после покупки
         cartItemRepository.deleteAll(cartItems);
 
-        // Создаем OrderDto
         List<ItemDto> items = cartItems.stream()
                 .map(cartItem -> itemMapper.toDto(
                         cartItem.getItem(),

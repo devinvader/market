@@ -24,7 +24,7 @@ public class AdminServiceTest {
     private AdminService adminService;
 
     @Test
-    void findItemById_ExistingId_ReturnsItem() {
+    void findItemById_existingId_returnsItem() {
         // given
         Long id = 1L;
         Item expectedItem = new Item(id, "Test Item", "Description", 1000L, null);
@@ -40,7 +40,7 @@ public class AdminServiceTest {
     }
 
     @Test
-    void findItemById_NonExistingId_ThrowsRuntimeException() {
+    void findItemById_nonExistingId_throwsRuntimeException() {
         // given
         Long id = 999L;
         when(itemRepository.findById(id)).thenReturn(Optional.empty());
@@ -55,7 +55,7 @@ public class AdminServiceTest {
     }
 
     @Test
-    void saveItem_ValidItem_ReturnsSavedItem() {
+    void saveItem_validItem_returnsSavedItem() {
         // given
         Item itemToSave = new Item(null, "New Item", "Desc", 5000L, null);
         Item savedItem = new Item(1L, "New Item", "Desc", 5000L, null);
@@ -71,7 +71,7 @@ public class AdminServiceTest {
     }
 
     @Test
-    void deleteItemById_ValidId_DeletesItem() {
+    void deleteItemById_validId_deletesItem() {
         // given
         Long id = 1L;
         doNothing().when(itemRepository).deleteById(id);

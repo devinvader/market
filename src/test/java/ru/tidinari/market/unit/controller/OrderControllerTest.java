@@ -47,7 +47,7 @@ public class OrderControllerTest {
     public void getOrder_shouldReturnOrderView() throws Exception {
         // given
         OrderDto expectedOrder = new OrderDto(1L, List.of(), 200);
-        when(orderService.getOrder(1L, false)).thenReturn(expectedOrder);
+        when(orderService.getOrCreateOrder(1L, false)).thenReturn(expectedOrder);
 
         // when
         mockMvc.perform(get("/orders/1"))
@@ -57,6 +57,6 @@ public class OrderControllerTest {
                 .andExpect(model().attribute("order", expectedOrder))
                 .andExpect(model().attribute("newOrder", false));
 
-        verify(orderService).getOrder(1L, false);
+        verify(orderService).getOrCreateOrder(1L, false);
     }
 }

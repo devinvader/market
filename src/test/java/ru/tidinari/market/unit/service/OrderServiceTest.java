@@ -9,12 +9,13 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.tidinari.market.domain.*;
+import ru.tidinari.market.mapper.OrderItemMapper;
 import ru.tidinari.market.repository.*;
 import ru.tidinari.market.service.ImageService;
 import ru.tidinari.market.service.OrderService;
 import ru.tidinari.market.web.dto.ItemDto;
 import ru.tidinari.market.web.dto.OrderDto;
-import ru.tidinari.market.web.mapper.ItemMapper;
+import ru.tidinari.market.mapper.ItemMapper;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +38,8 @@ public class OrderServiceTest {
     @Mock
     private ImageService imageService;
     @Spy
+    private OrderItemMapper orderItemMapper = new OrderItemMapper();
+    @Spy
     private ItemMapper itemMapper = new ItemMapper();
     @InjectMocks
     private OrderService orderService;
@@ -44,10 +47,10 @@ public class OrderServiceTest {
     @Captor
     private ArgumentCaptor<Order> orderCaptor;
     @Captor
-    private ArgumentCaptor<OrderItem> orderItemCaptor;
+    private ArgumentCaptor<Iterable<OrderItem>> orderItemCaptor;
 
     @Test
-    void getOrders_NoOrders_ReturnsEmptyList() {
+    void getOrCreateOrders_noOrders_returnsEmptyList() {
         // given
         when(orderRepository.findAll()).thenReturn(List.of());
 
@@ -61,7 +64,7 @@ public class OrderServiceTest {
     }
 
     @Test
-    void getOrders_WithOrders_ReturnsOrderDtos() {
+    void getOrders_withOrders_returnsOrCreateOrderDtos() {
         Order order = new Order();
         order.setId(1L);
         order.setTotalSum(5000L);
@@ -101,7 +104,7 @@ public class OrderServiceTest {
     }
 
     @Test
-    void getOrder_ExistingOrder_ReturnsOrderDto() {
+    void getOrder_existingOrder_returnsOrCreateOrderDto() {
         Order order = new Order();
         order.setId(5L);
         order.setTotalSum(3000L);
@@ -112,7 +115,7 @@ public class OrderServiceTest {
         when(orderItemRepository.findByOrderId(5L)).thenReturn(List.of(orderItem));
         when(imageService.getImageUrl(30L)).thenReturn("/items/30/image");
 
-        OrderDto result = orderService.getOrder(5L, false);
+        OrderDto result = orderService.getOrCreateOrder(5L, false);
 
         assertEquals(5L, result.id());
         assertEquals(3000L, result.totalSum());
@@ -129,18 +132,18 @@ public class OrderServiceTest {
     }
 
     @Test
-    void getOrder_ExistingOrderNotFound_ThrowsException() {
+    void getOrder_existingOrCreateOrderNotFound_throwsException() {
         when(orderRepository.findById(99L)).thenReturn(Optional.empty());
 
         RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> orderService.getOrder(99L, false));
+                () -> orderService.getOrCreateOrder(99L, false));
         assertEquals("Order not found", exception.getMessage());
         verify(orderRepository).findById(99L);
         verifyNoInteractions(orderItemRepository);
     }
 
     @Test
-    void getOrder_NewOrder_CreatesOrderFromCart() {
+    void getOrder_newOrder_createsOrCreateOrderFromCart() {
         long cartId = 1L;
         Cart cart = new Cart();
         cart.setId(cartId);
@@ -155,22 +158,22 @@ public class OrderServiceTest {
             o.setId(100L);
             return o;
         });
-        when(orderItemRepository.save(any(OrderItem.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(orderItemRepository.saveAll(any(Iterable.class))).thenAnswer(inv -> inv.getArgument(0));
         when(imageService.getImageUrl(10L)).thenReturn("/items/10/image");
         when(imageService.getImageUrl(20L)).thenReturn("/items/20/image");
 
-        OrderDto result = orderService.getOrder(cartId, true);
+        OrderDto result = orderService.getOrCreateOrder(cartId, true);
 
         assertEquals(100L, result.id());
-        assertEquals(5000L, result.totalSum()); // 1000*3 + 2000*1
+        assertEquals(1000 * 3 + 2000 * 1, result.totalSum());
         assertEquals(2, result.items().size());
 
         verify(cartItemRepository).deleteAll(List.of(cartItem1, cartItem2));
         verify(orderRepository).save(orderCaptor.capture());
         assertEquals(5000L, orderCaptor.getValue().getTotalSum());
 
-        verify(orderItemRepository, times(2)).save(orderItemCaptor.capture());
-        List<OrderItem> savedItems = orderItemCaptor.getAllValues();
+        verify(orderItemRepository).saveAll(orderItemCaptor.capture());
+        List<OrderItem> savedItems = (List<OrderItem>) orderItemCaptor.getValue();
         assertEquals(2, savedItems.size());
         assertEquals(3, savedItems.get(0).getCount());
         assertEquals(1, savedItems.get(1).getCount());
@@ -182,7 +185,7 @@ public class OrderServiceTest {
     }
 
     @Test
-    void getOrder_NewOrder_NoCartItems_ReturnsOrderWithZeroTotal() {
+    void getOrder_newOrder_noCartItems_returnsOrCreateOrderWithZeroTotal() {
         long cartId = 999L;
         when(cartItemRepository.findByCartId(cartId)).thenReturn(List.of());
         when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
@@ -191,7 +194,7 @@ public class OrderServiceTest {
             return o;
         });
 
-        OrderDto result = orderService.getOrder(cartId, true);
+        OrderDto result = orderService.getOrCreateOrder(cartId, true);
 
         assertEquals(100L, result.id());
         assertEquals(0L, result.totalSum());

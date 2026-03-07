@@ -21,7 +21,7 @@ import ru.tidinari.market.service.ImageService;
 import ru.tidinari.market.service.ItemsService;
 import ru.tidinari.market.web.dto.ItemDto;
 import ru.tidinari.market.web.dto.SortTypeDto;
-import ru.tidinari.market.web.mapper.ItemMapper;
+import ru.tidinari.market.mapper.ItemMapper;
 
 import java.util.List;
 import java.util.Map;
@@ -55,10 +55,10 @@ public class ItemsServiceTest {
     }
 
     @Test
-    void getItems_EmptyResult_ReturnsEmptyList() {
+    void getItems_emptyResult_returnsEmptyList() {
         // given
         Page<Item> emptyPage = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
-        when(itemRepository.findByTitleContainingIgnoreCase(anyString(), any(Pageable.class)))
+        when(itemRepository.searchByTitleOrDescription(anyString(), any(Pageable.class)))
                 .thenReturn(emptyPage);
 
         // when
@@ -66,17 +66,17 @@ public class ItemsServiceTest {
 
         // then
         assertEquals(0, result.size());
-        verify(itemRepository).findByTitleContainingIgnoreCase(eq(""), any(Pageable.class));
+        verify(itemRepository).searchByTitleOrDescription(eq(""), any(Pageable.class));
         verify(cartService).getItemCounts(eq(List.of()));
         verifyNoInteractions(imageService);
     }
 
     @Test
-    void getItems_OneItem_ReturnsOneGroupWithTwoEmpty() {
+    void getItems_oneItem_returnsOneGroupWithTwoEmpty() {
         // given
         Item item = new Item(1L, "Item1", "Desc1", 1000L, null);
         Page<Item> page = new PageImpl<>(List.of(item), PageRequest.of(0, 10), 1);
-        when(itemRepository.findByTitleContainingIgnoreCase(anyString(), any(Pageable.class)))
+        when(itemRepository.searchByTitleOrDescription(anyString(), any(Pageable.class)))
                 .thenReturn(page);
         when(cartService.getItemCounts(List.of(1L))).thenReturn(Map.of(1L, 2));
 
@@ -99,13 +99,13 @@ public class ItemsServiceTest {
     }
 
     @Test
-    void getItems_ThreeItems_ReturnsOneGroupWithNoEmpty() {
+    void getItems_threeItems_returnsOneGroupWithNoEmpty() {
         // given
         Item item1 = new Item(1L, "Item1", "Desc1", 1000L, null);
         Item item2 = new Item(2L, "Item2", "Desc2", 2000L, null);
         Item item3 = new Item(3L, "Item3", "Desc3", 3000L, null);
         Page<Item> page = new PageImpl<>(List.of(item1, item2, item3), PageRequest.of(0, 10), 3);
-        when(itemRepository.findByTitleContainingIgnoreCase(anyString(), any(Pageable.class)))
+        when(itemRepository.searchByTitleOrDescription(anyString(), any(Pageable.class)))
                 .thenReturn(page);
         when(cartService.getItemCounts(List.of(1L, 2L, 3L))).thenReturn(Map.of(1L, 1, 2L, 0, 3L, 5));
 
@@ -129,14 +129,14 @@ public class ItemsServiceTest {
     }
 
     @Test
-    void getItems_FourItems_ReturnsTwoGroups() {
+    void getItems_fourItems_returnsTwoGroups() {
         // given
         Item item1 = new Item(1L, "Item1", "Desc1", 1000L, null);
         Item item2 = new Item(2L, "Item2", "Desc2", 2000L, null);
         Item item3 = new Item(3L, "Item3", "Desc3", 3000L, null);
         Item item4 = new Item(4L, "Item4", "Desc4", 4000L, null);
         Page<Item> page = new PageImpl<>(List.of(item1, item2, item3, item4), PageRequest.of(0, 10), 4);
-        when(itemRepository.findByTitleContainingIgnoreCase(anyString(), any(Pageable.class)))
+        when(itemRepository.searchByTitleOrDescription(anyString(), any(Pageable.class)))
                 .thenReturn(page);
         when(cartService.getItemCounts(List.of(1L, 2L, 3L, 4L))).thenReturn(Map.of());
 
@@ -163,7 +163,7 @@ public class ItemsServiceTest {
     }
 
     @Test
-    void getItems_FiveItems_ReturnsTwoGroups() {
+    void getItems_fiveItems_returnsTwoGroups() {
         // given
         Item item1 = new Item(1L, "Item1", "Desc1", 1000L, null);
         Item item2 = new Item(2L, "Item2", "Desc2", 2000L, null);
@@ -171,7 +171,7 @@ public class ItemsServiceTest {
         Item item4 = new Item(4L, "Item4", "Desc4", 4000L, null);
         Item item5 = new Item(5L, "Item5", "Desc5", 5000L, null);
         Page<Item> page = new PageImpl<>(List.of(item1, item2, item3, item4, item5), PageRequest.of(0, 10), 5);
-        when(itemRepository.findByTitleContainingIgnoreCase(anyString(), any(Pageable.class)))
+        when(itemRepository.searchByTitleOrDescription(anyString(), any(Pageable.class)))
                 .thenReturn(page);
         when(cartService.getItemCounts(List.of(1L, 2L, 3L, 4L, 5L))).thenReturn(Map.of());
 
