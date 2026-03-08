@@ -25,7 +25,7 @@ public class ImageService {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Item not found"));
 
-        Optional<Image> image = imageRepository.findByItemId(itemId);
+        Optional<Image> image = Optional.ofNullable(item.getImage());
         if (image.isPresent()) {
             // Обновляем существующее изображение
             Image existingImage = image.get();
@@ -39,8 +39,8 @@ public class ImageService {
             newImage.setContentType(file.getContentType());
             newImage.setItem(item);
             item.setImage(newImage);
-            itemRepository.save(item);
-            return item.getImage();
+            Item savedItem = itemRepository.save(item);
+            return savedItem.getImage();
         }
     }
 

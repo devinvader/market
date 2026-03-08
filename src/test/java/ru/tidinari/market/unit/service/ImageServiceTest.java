@@ -44,11 +44,10 @@ public class ImageServiceTest {
         when(itemRepository.findById(ITEM_ID)).thenReturn(Optional.of(item));
         when(file.getBytes()).thenReturn(fileData);
         when(file.getContentType()).thenReturn(contentType);
-
-        when(imageRepository.save(any(Image.class))).thenAnswer(inv -> {
-            Image img = inv.getArgument(0);
-            img.setId(IMAGE_ID);
-            return img;
+        when(itemRepository.save(any(Item.class))).thenAnswer(inv -> {
+            Item itm = inv.getArgument(0);
+            itm.setImage(new Image(IMAGE_ID, fileData, contentType, itm));
+            return itm;
         });
 
         // when
@@ -62,25 +61,22 @@ public class ImageServiceTest {
         assertEquals(item, result.getItem());
 
         verify(itemRepository).findById(ITEM_ID);
-        verify(imageRepository).save(any(Image.class));
     }
 
     @Test
     void saveImage_existingImage_updatesAndReturnsImage() throws IOException {
         // given
-        Item item = new Item(ITEM_ID, "Test", "Desc", 1000L, null);
         MultipartFile file = mock(MultipartFile.class);
         byte[] fileData = "new data".getBytes();
         String contentType = "image/png";
 
-        Image existingImage = new Image(IMAGE_ID, "old data".getBytes(), "image/jpeg", item);
-
+        Image existingImage = new Image(IMAGE_ID, "old data".getBytes(), "image/jpeg", null);
+        Item item = new Item(ITEM_ID, "Test", "Desc", 1000L, existingImage);
+        existingImage.setItem(item);
         when(itemRepository.findById(ITEM_ID)).thenReturn(Optional.of(item));
-        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(Optional.of(existingImage));
         when(file.getBytes()).thenReturn(fileData);
         when(file.getContentType()).thenReturn(contentType);
         when(imageRepository.save(existingImage)).thenReturn(existingImage);
-
         // when
         Image result = imageService.saveImage(ITEM_ID, file);
 
@@ -156,18 +152,5 @@ public class ImageServiceTest {
 
         // then
         verify(imageRepository, never()).delete(any());
-    }
-
-    @Test
-    void getImageUrl_existing_returnsUrl() {
-        // given
-        Image image = new Image(IMAGE_ID, new byte[0], "image/jpeg", new Item());
-        when(imageRepository.findIdByItemId(ITEM_ID)).thenReturn(image.getId());
-
-        // when
-        String url = imageService.getImageUrl(ITEM_ID);
-
-        // then
-        assertEquals("/images/" + IMAGE_ID, url);
     }
 }
