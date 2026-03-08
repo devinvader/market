@@ -20,6 +20,7 @@ import ru.tidinari.market.service.CartService;
 import ru.tidinari.market.service.ImageService;
 import ru.tidinari.market.service.ItemsService;
 import ru.tidinari.market.web.dto.ItemDto;
+import ru.tidinari.market.web.dto.PagedListItemDto;
 import ru.tidinari.market.web.dto.SortTypeDto;
 import ru.tidinari.market.mapper.ItemMapper;
 
@@ -62,10 +63,10 @@ public class ItemsServiceTest {
                 .thenReturn(emptyPage);
 
         // when
-        List<List<ItemDto>> result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
+        PagedListItemDto result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
 
         // then
-        assertEquals(0, result.size());
+        assertEquals(0, result.items().size());
         verify(itemRepository).searchByTitleOrDescription(eq(""), any(Pageable.class));
         verify(cartService).getItemCounts(eq(List.of()));
         verifyNoInteractions(imageService);
@@ -81,11 +82,11 @@ public class ItemsServiceTest {
         when(cartService.getItemCounts(List.of(1L))).thenReturn(Map.of(1L, 2));
 
         // when
-        List<List<ItemDto>> result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
+        PagedListItemDto result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
 
         // then
-        assertEquals(1, result.size());
-        List<ItemDto> group = result.get(0);
+        assertEquals(1, result.items().size());
+        List<ItemDto> group = result.items().get(0);
         assertEquals(3, group.size());
         assertEquals(1L, group.get(0).id());
         assertEquals(2, group.get(0).count());
@@ -110,11 +111,11 @@ public class ItemsServiceTest {
         when(cartService.getItemCounts(List.of(1L, 2L, 3L))).thenReturn(Map.of(1L, 1, 2L, 0, 3L, 5));
 
         // when
-        List<List<ItemDto>> result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
+        PagedListItemDto result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
 
         // then
-        assertEquals(1, result.size());
-        List<ItemDto> group = result.get(0);
+        assertEquals(1, result.items().size());
+        List<ItemDto> group = result.items().get(0);
         assertEquals(3, group.size());
         assertEquals(1L, group.get(0).id());
         assertEquals(1, group.get(0).count());
@@ -141,17 +142,17 @@ public class ItemsServiceTest {
         when(cartService.getItemCounts(List.of(1L, 2L, 3L, 4L))).thenReturn(Map.of());
 
         // when
-        List<List<ItemDto>> result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
+        PagedListItemDto result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
 
         // then
-        assertEquals(2, result.size());
-        List<ItemDto> group1 = result.get(0);
+        assertEquals(2, result.items().size());
+        List<ItemDto> group1 = result.items().get(0);
         assertEquals(3, group1.size());
         assertEquals(1L, group1.get(0).id());
         assertEquals(2L, group1.get(1).id());
         assertEquals(3L, group1.get(2).id());
 
-        List<ItemDto> group2 = result.get(1);
+        List<ItemDto> group2 = result.items().get(1);
         assertEquals(3, group2.size());
         assertEquals(4L, group2.get(0).id());
         assertEquals(ItemDto.empty(), group2.get(1));
@@ -176,17 +177,17 @@ public class ItemsServiceTest {
         when(cartService.getItemCounts(List.of(1L, 2L, 3L, 4L, 5L))).thenReturn(Map.of());
 
         // when
-        List<List<ItemDto>> result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
+        PagedListItemDto result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
 
         // then
-        assertEquals(2, result.size());
-        List<ItemDto> group1 = result.get(0);
+        assertEquals(2, result.items().size());
+        List<ItemDto> group1 = result.items().get(0);
         assertEquals(3, group1.size());
         assertEquals(1L, group1.get(0).id());
         assertEquals(2L, group1.get(1).id());
         assertEquals(3L, group1.get(2).id());
 
-        List<ItemDto> group2 = result.get(1);
+        List<ItemDto> group2 = result.items().get(1);
         assertEquals(3, group2.size());
         assertEquals(4L, group2.get(0).id());
         assertEquals(5L, group2.get(1).id());

@@ -1,15 +1,15 @@
 package ru.tidinari.market.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import ru.tidinari.market.domain.Item;
 import ru.tidinari.market.repository.ItemRepository;
-import ru.tidinari.market.web.dto.ActionTypeDto;
 import ru.tidinari.market.web.dto.ItemDto;
+import ru.tidinari.market.web.dto.PagedListItemDto;
+import ru.tidinari.market.web.dto.PagingDto;
 import ru.tidinari.market.web.dto.SortTypeDto;
 import ru.tidinari.market.mapper.ItemMapper;
 
@@ -26,12 +26,12 @@ public class ItemsService {
     private final CartService cartService;
     private final ItemMapper itemMapper;
 
-    public List<List<ItemDto>> getItems(String search, SortTypeDto sortType, Integer page, Integer size) {
+    public PagedListItemDto getItems(String search, SortTypeDto sortType, Integer page, Integer size) {
         Pageable pageable = PageRequest.of(page, size, sortType.getSort());
         Page<Item> itemPage = itemRepository.searchByTitleOrDescription(search, pageable);
+        PagingDto pagingDto = new PagingDto(size, page, itemPage.hasPrevious(), itemPage.hasNext());
         List<Item> itemList = itemPage.getContent();
         
-        // Собираем IDs товаров
         List<Long> itemIds = itemList.stream()
                 .map(Item::getId)
                 .collect(Collectors.toList());
@@ -55,7 +55,7 @@ public class ItemsService {
             groups.add(group);
         }
         if (groups.isEmpty()) {
-            return groups;
+            return new PagedListItemDto(pagingDto, groups);
         }
         // В последней группе может быть недобор
         List<ItemDto> lastGroup = groups.getLast();
@@ -63,7 +63,7 @@ public class ItemsService {
             lastGroup.add(ItemDto.empty());
         }
 
-        return groups;
+        return new PagedListItemDto(pagingDto, groups);
     }
 
     public ItemDto getItem(long id) {

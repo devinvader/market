@@ -38,7 +38,9 @@ public class ImageService {
             newImage.setData(file.getBytes());
             newImage.setContentType(file.getContentType());
             newImage.setItem(item);
-            return imageRepository.save(newImage);
+            item.setImage(newImage);
+            itemRepository.save(item);
+            return item.getImage();
         }
     }
 
@@ -55,10 +57,6 @@ public class ImageService {
     }
 
     public String getImageUrl(Long itemId) {
-        Long imageId = imageRepository.findIdByItemId(itemId);
-        if (imageId != null) {
-            return "/images/" + imageId;
-        }
-        return null;
+        return "items/" + itemId + "/image";
     }
 }

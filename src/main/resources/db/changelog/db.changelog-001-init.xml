@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <databaseChangeLog
-    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <!-- Создание таблицы items -->
+    <!-- Создание таблицы items (добавлена колонка image_id) -->
     <changeSet id="001-create-items-table" author="market">
         <createTable tableName="items">
             <column name="id" type="BIGINT" autoIncrement="true">
@@ -17,10 +17,12 @@
             <column name="price" type="BIGINT">
                 <constraints nullable="false" />
             </column>
+            <!-- Новая колонка для связи с изображением -->
+            <column name="image_id" type="BIGINT"/>
         </createTable>
     </changeSet>
 
-    <!-- Создание таблицы orders -->
+    <!-- Создание таблицы orders (без изменений) -->
     <changeSet id="002-create-orders-table" author="market">
         <createTable tableName="orders">
             <column name="id" type="BIGINT" autoIncrement="true">
@@ -32,33 +34,31 @@
         </createTable>
     </changeSet>
 
-    <!-- Создание таблицы order_items -->
+    <!-- Создание таблицы order_items (без изменений) -->
     <changeSet id="003-create-order-items-table" author="market">
         <createTable tableName="order_items">
             <column name="order_id" type="BIGINT">
                 <constraints nullable="false"
-                    foreignKeyName="fk_order_items_order_id"
-                    referencedTableName="orders"
-                    referencedColumnNames="id" />
+                             foreignKeyName="fk_order_items_order_id"
+                             referencedTableName="orders"
+                             referencedColumnNames="id" />
             </column>
             <column name="item_id" type="BIGINT">
                 <constraints nullable="false"
-                    foreignKeyName="fk_order_items_item_id"
-                    referencedTableName="items"
-                    referencedColumnNames="id" />
+                             foreignKeyName="fk_order_items_item_id"
+                             referencedTableName="items"
+                             referencedColumnNames="id" />
             </column>
             <column name="count" type="INT">
                 <constraints nullable="false" />
             </column>
         </createTable>
-
-        <!-- Создание составного первичного ключа -->
         <addPrimaryKey tableName="order_items"
-            columnNames="order_id, item_id"
-            constraintName="pk_order_items" />
+                       columnNames="order_id, item_id"
+                       constraintName="pk_order_items" />
     </changeSet>
 
-    <!-- Создание таблицы carts -->
+    <!-- Создание таблицы carts (без изменений) -->
     <changeSet id="004-create-carts-table" author="market">
         <createTable tableName="carts">
             <column name="id" type="BIGINT" autoIncrement="true">
@@ -67,33 +67,31 @@
         </createTable>
     </changeSet>
 
-    <!-- Создание таблицы cart_items -->
+    <!-- Создание таблицы cart_items (без изменений) -->
     <changeSet id="005-create-cart-items-table" author="market">
         <createTable tableName="cart_items">
             <column name="cart_id" type="BIGINT">
                 <constraints nullable="false"
-                    foreignKeyName="fk_cart_items_cart_id"
-                    referencedTableName="carts"
-                    referencedColumnNames="id" />
+                             foreignKeyName="fk_cart_items_cart_id"
+                             referencedTableName="carts"
+                             referencedColumnNames="id" />
             </column>
             <column name="item_id" type="BIGINT">
                 <constraints nullable="false"
-                    foreignKeyName="fk_cart_items_item_id"
-                    referencedTableName="items"
-                    referencedColumnNames="id" />
+                             foreignKeyName="fk_cart_items_item_id"
+                             referencedTableName="items"
+                             referencedColumnNames="id" />
             </column>
             <column name="count" type="INT">
                 <constraints nullable="false" />
             </column>
         </createTable>
-
-        <!-- Создание составного первичного ключа -->
         <addPrimaryKey tableName="cart_items"
-            columnNames="cart_id, item_id"
-            constraintName="pk_cart_items" />
+                       columnNames="cart_id, item_id"
+                       constraintName="pk_cart_items" />
     </changeSet>
 
-    <!-- Создание таблицы images -->
+    <!-- Создание таблицы images (БЕЗ колонки item_id) -->
     <changeSet id="006-create-images-table" author="market">
         <createTable tableName="images">
             <column name="id" type="BIGINT" autoIncrement="true">
@@ -105,14 +103,22 @@
             <column name="content_type" type="VARCHAR(255)">
                 <constraints nullable="false" />
             </column>
-            <column name="item_id" type="BIGINT">
-                <constraints nullable="false"
-                    foreignKeyName="fk_images_item_id"
-                    referencedTableName="items"
-                    referencedColumnNames="id"
-                    unique="true" />
-            </column>
+            <!-- колонка item_id УДАЛЕНА -->
         </createTable>
+    </changeSet>
+
+    <!-- Добавление внешнего ключа и уникальности для image_id в таблице items -->
+    <changeSet id="007-add-image-fk-to-items" author="market">
+        <addForeignKeyConstraint
+                baseTableName="items"
+                baseColumnNames="image_id"
+                referencedTableName="images"
+                referencedColumnNames="id"
+                constraintName="fk_items_image_id" />
+        <addUniqueConstraint
+                tableName="items"
+                columnNames="image_id"
+                constraintName="uk_items_image_id" />
     </changeSet>
 
 </databaseChangeLog>

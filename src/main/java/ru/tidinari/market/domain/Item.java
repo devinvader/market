@@ -24,6 +24,7 @@ public class Item {
     @Column(nullable = false)
     private Long price;
 
-    @OneToOne(mappedBy = "item", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "image_id")
     private Image image;
 }

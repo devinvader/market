@@ -11,6 +11,8 @@ import ru.tidinari.market.service.ItemsService;
 import ru.tidinari.market.web.controller.ItemsController;
 import ru.tidinari.market.web.dto.ActionTypeDto;
 import ru.tidinari.market.web.dto.ItemDto;
+import ru.tidinari.market.web.dto.PagedListItemDto;
+import ru.tidinari.market.web.dto.PagingDto;
 import ru.tidinari.market.web.dto.SortTypeDto;
 
 import java.util.List;
@@ -41,9 +43,11 @@ public class ItemsControllerTest {
                 new ItemDto(2L, "Item 2", "Description 2", "/img2.jpg", 2000, 0),
                 ItemDto.empty()
         );
-        List<List<ItemDto>> expectedItems = List.of(itemDtoList);
+        List<List<ItemDto>> items = List.of(itemDtoList);
+        PagingDto pagingDto = new PagingDto(10, 0, false, false);
+        PagedListItemDto expectedResult = new PagedListItemDto(pagingDto, items);
         when(itemsService.getItems("", SortTypeDto.NO, 0, 10))
-                .thenReturn(expectedItems);
+                .thenReturn(expectedResult);
 
         // when
         mockMvc.perform(get("/items"))
@@ -52,8 +56,8 @@ public class ItemsControllerTest {
                 .andExpect(view().name("items"))
                 .andExpect(model().attribute("search", ""))
                 .andExpect(model().attribute("sort", "NO"))
-                .andExpect(model().attributeExists("paging"))
-                .andExpect(model().attribute("items", expectedItems));
+                .andExpect(model().attribute("paging", pagingDto))
+                .andExpect(model().attribute("items", items));
 
         verify(itemsService).getItems("", SortTypeDto.NO, 0, 10);
     }

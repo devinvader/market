@@ -12,6 +12,8 @@ import ru.tidinari.market.service.ImageService;
 import ru.tidinari.market.service.ItemsService;
 import ru.tidinari.market.web.controller.AdminController;
 import ru.tidinari.market.web.dto.ItemDto;
+import ru.tidinari.market.web.dto.PagedListItemDto;
+import ru.tidinari.market.web.dto.PagingDto;
 import ru.tidinari.market.web.dto.SortTypeDto;
 
 import java.util.List;
@@ -38,14 +40,16 @@ public class AdminControllerTest {
     @Test
     public void getAdminPage_shouldReturnAdminView() throws Exception {
         // given
-        List<List<ItemDto>> expectedItems = List.of(
+        List<List<ItemDto>> items = List.of(
                 List.of(
                         new ItemDto(1L, "Item 1", "Description 1", "/img1.jpg", 1000, 0),
                         new ItemDto(2L, "Item 2", "Description 2", "/img2.jpg", 2000, 0)
                 )
         );
+        PagingDto pagingDto = new PagingDto(10, 0, false, false);
+        PagedListItemDto expectedResult = new PagedListItemDto(pagingDto, items);
         when(itemsService.getItems("", SortTypeDto.NO, 0, 10))
-                .thenReturn(expectedItems);
+                .thenReturn(expectedResult);
 
         // when & then
         mockMvc.perform(get("/admin"))
@@ -53,8 +57,8 @@ public class AdminControllerTest {
                 .andExpect(view().name("admin"))
                 .andExpect(model().attribute("search", ""))
                 .andExpect(model().attribute("sort", "NO"))
-                .andExpect(model().attributeExists("paging"))
-                .andExpect(model().attribute("items", expectedItems));
+                .andExpect(model().attribute("paging", pagingDto))
+                .andExpect(model().attribute("items", items));
 
         verify(itemsService).getItems("", SortTypeDto.NO, 0, 10);
     }

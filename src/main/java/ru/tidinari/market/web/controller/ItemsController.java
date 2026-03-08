@@ -22,15 +22,16 @@ public class ItemsController {
     @GetMapping(path = {"/", "/items"})
     public ModelAndView getItems(
             @RequestParam(name = "search", required = false, defaultValue = "") String search,
-            @RequestParam(name = "sortType", required = false, defaultValue = "NO") SortTypeDto sortType,
+            @RequestParam(name = "sort", required = false, defaultValue = "NO") SortTypeDto sortType,
             @RequestParam(name = "pageNumber", required = false, defaultValue = "0") Integer page,
             @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer size
     ) {
         ModelAndView modelAndView = new ModelAndView("items");
         modelAndView.addObject("search", search);
         modelAndView.addObject("sort", sortType.name());
-        modelAndView.addObject("paging", new PagingDto(size, page, page > 1, false));
-        modelAndView.addObject("items", itemsService.getItems(search, sortType, page, size));
+        PagedListItemDto pagedItems = itemsService.getItems(search, sortType, page, size);
+        modelAndView.addObject("paging", pagedItems.pagingDto());
+        modelAndView.addObject("items", pagedItems.items());
         return modelAndView;
     }
 

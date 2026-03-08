@@ -10,11 +10,10 @@ import ru.tidinari.market.service.AdminService;
 import ru.tidinari.market.service.ImageService;
 import ru.tidinari.market.service.ItemsService;
 import ru.tidinari.market.web.dto.ItemDto;
-import ru.tidinari.market.web.dto.PagingDto;
+import ru.tidinari.market.web.dto.PagedListItemDto;
 import ru.tidinari.market.web.dto.SortTypeDto;
 
 import java.io.IOException;
-import java.util.List;
 
 @Controller
 @RequestMapping("/admin")
@@ -28,16 +27,16 @@ public class AdminController {
     @GetMapping
     public ModelAndView getAdminPage(
             @RequestParam(name = "search", required = false, defaultValue = "") String search,
-            @RequestParam(name = "sortType", required = false, defaultValue = "NO") SortTypeDto sortType,
+            @RequestParam(name = "sort", required = false, defaultValue = "NO") SortTypeDto sortType,
             @RequestParam(name = "pageNumber", required = false, defaultValue = "0") Integer page,
             @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer size
     ) {
         ModelAndView modelAndView = new ModelAndView("admin");
         modelAndView.addObject("search", search);
         modelAndView.addObject("sort", sortType.name());
-        modelAndView.addObject("paging", new PagingDto(size, page, page > 1, false));
-        List<List<ItemDto>> items = itemsService.getItems(search, sortType, page, size);
-        modelAndView.addObject("items", items);
+        PagedListItemDto pagedItems = itemsService.getItems(search, sortType, page, size);
+        modelAndView.addObject("paging", pagedItems.pagingDto());
+        modelAndView.addObject("items", pagedItems.items());
         return modelAndView;
     }
 
