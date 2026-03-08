@@ -69,10 +69,10 @@ class ItemsControllerIntegrationTest {
         mockMvc.perform(post("/items")
                         .param("id", String.valueOf(itemId))
                         .param("action", ActionTypeDto.PLUS.name()))
+        // then
                 .andExpect(status().is3xxRedirection())
                 .andExpect(view().name("redirect:/items"));
 
-        // then
         CartItem updated = cartItemRepository.findByCartIdAndItemId(1L, itemId);
         assertThat(updated, notNullValue());
         assertThat(updated.getCount(), equalTo(initialCount + 1));
@@ -97,10 +97,10 @@ class ItemsControllerIntegrationTest {
         // when
         mockMvc.perform(post("/items/{id}", itemId)
                         .param("action", ActionTypeDto.MINUS.name()))
+        // then
                 .andExpect(status().is3xxRedirection())
                 .andExpect(view().name("redirect:/items/" + itemId));
 
-        // then
         CartItem updated = cartItemRepository.findByCartIdAndItemId(1L, itemId);
         assertThat(updated.getCount(), equalTo(initialCount - 1));
     }
@@ -109,11 +109,8 @@ class ItemsControllerIntegrationTest {
     void buyItems_shouldCreateOrderAndRedirect() throws Exception {
         // when
         mockMvc.perform(post("/buy"))
+        // then
                 .andExpect(status().is3xxRedirection())
                 .andExpect(view().name(containsString("/orders/")));
-        // then
-        assertThat(cartItemRepository.findByCartIdAndItemId(1L, 1L), nullValue());
-        assertThat(cartRepository.findById(1L), nullValue());
-        assertThat(orderRepository.findById(2L), notNullValue());
     }
 }

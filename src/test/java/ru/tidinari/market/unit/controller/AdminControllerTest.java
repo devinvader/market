@@ -73,6 +73,15 @@ public class AdminControllerTest {
 
     @Test
     public void addItem_shouldSaveAndRedirect() throws Exception {
+        // given
+        Item savedItem = new Item();
+        savedItem.setId(99L);
+        savedItem.setTitle("New Item");
+        savedItem.setDescription("New Description");
+        savedItem.setPrice(5000L);
+        when(adminService.createItem(eq("New Item"), eq("New Description"), eq(5000L), eq(null)))
+                .thenReturn(savedItem);
+
         // when
         mockMvc.perform(post("/admin/items")
                         .param("title", "New Item")
@@ -82,22 +91,14 @@ public class AdminControllerTest {
                 .andExpect(view().name("redirect:/admin"));
 
         // then
-        verify(adminService).saveItem(argThat(item ->
-                item.getTitle().equals("New Item") &&
-                item.getDescription().equals("New Description") &&
-                item.getPrice() == 5000
-        ));
+        verify(adminService).createItem(eq("New Item"), eq("New Description"), eq(5000L), eq(null));
     }
 
     @Test
     public void showEditItemForm_shouldReturnEditItemView() throws Exception {
         // given
-        Item item = new Item();
-        item.setId(1L);
-        item.setTitle("Item");
-        item.setDescription("Desc");
-        item.setPrice(1000L);
-        when(adminService.findItemById(1L)).thenReturn(item);
+        ItemDto itemDto = new ItemDto(1L, "Item", "Desc", 1000L, 0);
+        when(adminService.getItemDtoById(1L)).thenReturn(itemDto);
 
         // when & then
         mockMvc.perform(get("/admin/items/1/edit"))
@@ -105,7 +106,7 @@ public class AdminControllerTest {
                 .andExpect(view().name("edit-item"))
                 .andExpect(model().attributeExists("item"));
 
-        verify(adminService).findItemById(1L);
+        verify(adminService).getItemDtoById(1L);
     }
 
     @Test
@@ -116,7 +117,8 @@ public class AdminControllerTest {
         existingItem.setTitle("Old");
         existingItem.setDescription("Old Desc");
         existingItem.setPrice(1000L);
-        when(adminService.findItemById(1L)).thenReturn(existingItem);
+        when(adminService.updateItem(eq(1L), eq("Updated"), eq("Updated Desc"), eq(2000L), eq(null)))
+                .thenReturn(existingItem);
 
         // when
         mockMvc.perform(post("/admin/items/1")
@@ -127,13 +129,7 @@ public class AdminControllerTest {
                 .andExpect(view().name("redirect:/admin"));
 
         // then
-        verify(adminService).findItemById(1L);
-        verify(adminService).saveItem(argThat(item ->
-                item.getId().equals(1L) &&
-                item.getTitle().equals("Updated") &&
-                item.getDescription().equals("Updated Desc") &&
-                item.getPrice() == 2000
-        ));
+        verify(adminService).updateItem(eq(1L), eq("Updated"), eq("Updated Desc"), eq(2000L), eq(null));
     }
 
     @Test

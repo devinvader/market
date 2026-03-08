@@ -1,9 +1,7 @@
 package ru.tidinari.market.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Data
 @NoArgsConstructor
@@ -26,5 +24,7 @@ public class Item {
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "image_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Image image;
 }

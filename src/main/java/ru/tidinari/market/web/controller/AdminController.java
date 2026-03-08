@@ -5,9 +5,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
-import ru.tidinari.market.domain.Item;
 import ru.tidinari.market.service.AdminService;
-import ru.tidinari.market.service.ImageService;
+
 import ru.tidinari.market.service.ItemsService;
 import ru.tidinari.market.web.dto.ItemDto;
 import ru.tidinari.market.web.dto.PagedListItemDto;
@@ -22,7 +21,6 @@ public class AdminController {
 
     private final ItemsService itemsService;
     private final AdminService adminService;
-    private final ImageService imageService;
 
     @GetMapping
     public ModelAndView getAdminPage(
@@ -54,23 +52,13 @@ public class AdminController {
             @RequestParam Long price,
             @RequestParam(value = "imageFile", required = false) MultipartFile imageFile
     ) throws IOException {
-        Item item = new Item();
-        item.setTitle(title);
-        item.setDescription(description);
-        item.setPrice(price);
-        Item savedItem = adminService.saveItem(item);
-
-        if (imageFile != null && !imageFile.isEmpty()) {
-            imageService.saveImage(savedItem.getId(), imageFile);
-        }
-
+        adminService.createItem(title, description, price, imageFile);
         return new ModelAndView("redirect:/admin");
     }
 
     @GetMapping("/items/{id}/edit")
     public ModelAndView showEditItemForm(@PathVariable Long id) {
-        Item item = adminService.findItemById(id);
-        ItemDto itemDto = new ItemDto(item.getId(), item.getTitle(), item.getDescription(), item.getPrice(), 0);
+        ItemDto itemDto = adminService.getItemDtoById(id);
         ModelAndView modelAndView = new ModelAndView("edit-item");
         modelAndView.addObject("item", itemDto);
         return modelAndView;
@@ -84,16 +72,7 @@ public class AdminController {
             @RequestParam Long price,
             @RequestParam(value = "imageFile", required = false) MultipartFile imageFile
     ) throws IOException {
-        Item item = adminService.findItemById(id);
-        item.setTitle(title);
-        item.setDescription(description);
-        item.setPrice(price);
-        adminService.saveItem(item);
-
-        if (imageFile != null && !imageFile.isEmpty()) {
-            imageService.saveImage(id, imageFile);
-        }
-
+        adminService.updateItem(id, title, description, price, imageFile);
         return new ModelAndView("redirect:/admin");
     }
 

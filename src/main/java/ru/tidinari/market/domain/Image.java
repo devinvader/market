@@ -1,9 +1,7 @@
 package ru.tidinari.market.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Data
 @NoArgsConstructor
@@ -23,5 +21,7 @@ public class Image {
     private String contentType;
 
     @OneToOne(mappedBy = "image")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Item item;
 }

@@ -1,9 +1,7 @@
 package ru.tidinari.market.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Data
 @NoArgsConstructor
@@ -15,11 +13,15 @@ public class OrderItem {
     @Id
     @ManyToOne
     @JoinColumn(name = "order_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Order order;
 
     @Id
     @ManyToOne
     @JoinColumn(name = "item_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Item item;
 
     @Column(nullable = false)

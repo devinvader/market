@@ -52,7 +52,6 @@
     <!-- Добавление тестового заказа (без изменений) -->
     <changeSet id="004-insert-test-order" author="market">
         <insert tableName="orders">
-            <column name="id" value="1"/>
             <column name="total_sum" value="400"/>
         </insert>
     </changeSet>
