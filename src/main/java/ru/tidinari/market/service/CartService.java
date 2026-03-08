@@ -36,7 +36,6 @@ public class CartService {
         return cartItemRepository.findByCartId(cart.getId()).stream()
                 .map(cartItem -> itemMapper.toDto(
                         cartItem.getItem(),
-                        imageService.getImageUrl(cartItem.getItem().getId()),
                         cartItem.getCount()
                 ))
                 .collect(Collectors.toList());

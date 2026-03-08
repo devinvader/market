@@ -42,8 +42,8 @@ public class AdminControllerTest {
         // given
         List<List<ItemDto>> items = List.of(
                 List.of(
-                        new ItemDto(1L, "Item 1", "Description 1", "/img1.jpg", 1000, 0),
-                        new ItemDto(2L, "Item 2", "Description 2", "/img2.jpg", 2000, 0)
+                        new ItemDto(1L, "Item 1", "Description 1", 1000, 0),
+                        new ItemDto(2L, "Item 2", "Description 2", 2000, 0)
                 )
         );
         PagingDto pagingDto = new PagingDto(10, 0, false, false);

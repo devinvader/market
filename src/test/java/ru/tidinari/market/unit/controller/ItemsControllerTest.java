@@ -39,8 +39,8 @@ public class ItemsControllerTest {
     public void getItems_shouldReturnItemsView() throws Exception {
         // given
         List<ItemDto> itemDtoList = List.of(
-                new ItemDto(1L, "Item 1", "Description 1", "/img1.jpg", 1000, 0),
-                new ItemDto(2L, "Item 2", "Description 2", "/img2.jpg", 2000, 0),
+                new ItemDto(1L, "Item 1", "Description 1", 1000, 0),
+                new ItemDto(2L, "Item 2", "Description 2", 2000, 0),
                 ItemDto.empty()
         );
         List<List<ItemDto>> items = List.of(itemDtoList);
@@ -65,7 +65,7 @@ public class ItemsControllerTest {
     @Test
     public void getItem_shouldReturnItemView() throws Exception {
         // given
-        ItemDto expectedItem = new ItemDto(1L, "Item 1", "Description 1", "/img1.jpg", 1000, 0);
+        ItemDto expectedItem = new ItemDto(1L, "Item 1", "Description 1", 1000, 0);
         when(itemsService.getItem(1L)).thenReturn(expectedItem);
 
         // when

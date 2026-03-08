@@ -36,7 +36,6 @@ public class OrderService {
             List<ItemDto> items = orderItems.stream()
                     .map(orderItem -> itemMapper.toDto(
                             orderItem.getItem(),
-                            imageService.getImageUrl(orderItem.getItem().getId()),
                             orderItem.getCount()
                     ))
                     .collect(Collectors.toList());
@@ -55,7 +54,6 @@ public class OrderService {
             List<ItemDto> items = orderItems.stream()
                     .map(orderItem -> itemMapper.toDto(
                             orderItem.getItem(),
-                            imageService.getImageUrl(orderItem.getItem().getId()),
                             orderItem.getCount()
                     ))
                     .collect(Collectors.toList());
@@ -83,7 +81,6 @@ public class OrderService {
         List<ItemDto> items = cartItems.stream()
                 .map(cartItem -> itemMapper.toDto(
                         cartItem.getItem(),
-                        imageService.getImageUrl(cartItem.getItem().getId()),
                         cartItem.getCount()
                 ))
                 .collect(Collectors.toList());

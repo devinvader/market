@@ -23,12 +23,11 @@ class ItemMapperTest {
         item.setDescription("Test Description");
         item.setPrice(1000L);
 
-        ItemDto dto = itemMapper.toDto(item, "/images/1.jpg", 5);
+        ItemDto dto = itemMapper.toDto(item, 5);
 
         assertEquals(1L, dto.id());
         assertEquals("Test Item", dto.title());
         assertEquals("Test Description", dto.description());
-        assertEquals("/images/1.jpg", dto.imgPath());
         assertEquals(1000L, dto.price());
         assertEquals(5, dto.count());
     }
@@ -42,12 +41,11 @@ class ItemMapperTest {
         item.setDescription(null);
         item.setPrice(100L);
 
-        ItemDto dto = itemMapper.toDto(item, null, 2);
+        ItemDto dto = itemMapper.toDto(item, 2);
 
         assertEquals(10L, dto.id());
         assertEquals("Item", dto.title());
         assertEquals(null, dto.description());
-        assertEquals(null, dto.imgPath());
         assertEquals(100L, dto.price());
         assertEquals(2, dto.count());
     }

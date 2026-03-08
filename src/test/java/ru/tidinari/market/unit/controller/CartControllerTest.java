@@ -31,8 +31,8 @@ public class CartControllerTest {
     public void getItems_shouldReturnCartView() throws Exception {
         // given
         List<ItemDto> expectedItems = List.of(
-                new ItemDto(1L, "Item 1", "Description 1", "/img1.jpg", 1000, 2),
-                new ItemDto(2L, "Item 2", "Description 2", "/img2.jpg", 2000, 1)
+                new ItemDto(1L, "Item 1", "Description 1", 1000, 2),
+                new ItemDto(2L, "Item 2", "Description 2", 2000, 1)
         );
         int expectedTotal = 4000; // 1000*2 + 2000*1
         when(cartService.getCartItems()).thenReturn(expectedItems);
@@ -54,7 +54,7 @@ public class CartControllerTest {
     public void actOnItems_shouldReturnCartView() throws Exception {
         // given
         List<ItemDto> expectedItems = List.of(
-                new ItemDto(1L, "Item 1", "Description 1", "/img1.jpg", 1000, 3)
+                new ItemDto(1L, "Item 1", "Description 1", 1000, 3)
         );
         int expectedTotal = 3000;
         when(cartService.actOnCartItems(1L, ActionTypeDto.PLUS)).thenReturn(expectedItems);

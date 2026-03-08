@@ -2,7 +2,6 @@ package ru.tidinari.market.unit.repository;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.jdbc.Sql;
 import ru.tidinari.market.domain.Item;
 import ru.tidinari.market.domain.Order;
 import ru.tidinari.market.domain.OrderItem;

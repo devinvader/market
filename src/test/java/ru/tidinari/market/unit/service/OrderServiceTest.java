@@ -76,8 +76,6 @@ public class OrderServiceTest {
 
         when(orderRepository.findAll()).thenReturn(List.of(order));
         when(orderItemRepository.findByOrderId(1L)).thenReturn(List.of(orderItem1, orderItem2));
-        when(imageService.getImageUrl(10L)).thenReturn("/items/10/image");
-        when(imageService.getImageUrl(20L)).thenReturn("/items/20/image");
 
         List<OrderDto> result = orderService.getOrders();
 
@@ -99,8 +97,6 @@ public class OrderServiceTest {
 
         verify(orderRepository).findAll();
         verify(orderItemRepository).findByOrderId(1L);
-        verify(imageService).getImageUrl(10L);
-        verify(imageService).getImageUrl(20L);
     }
 
     @Test
@@ -113,7 +109,6 @@ public class OrderServiceTest {
 
         when(orderRepository.findById(5L)).thenReturn(Optional.of(order));
         when(orderItemRepository.findByOrderId(5L)).thenReturn(List.of(orderItem));
-        when(imageService.getImageUrl(30L)).thenReturn("/items/30/image");
 
         OrderDto result = orderService.getOrCreateOrder(5L, false);
 
@@ -127,7 +122,6 @@ public class OrderServiceTest {
 
         verify(orderRepository).findById(5L);
         verify(orderItemRepository).findByOrderId(5L);
-        verify(imageService).getImageUrl(30L);
         verifyNoInteractions(cartRepository, cartItemRepository);
     }
 
@@ -159,8 +153,6 @@ public class OrderServiceTest {
             return o;
         });
         when(orderItemRepository.saveAll(any(Iterable.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(imageService.getImageUrl(10L)).thenReturn("/items/10/image");
-        when(imageService.getImageUrl(20L)).thenReturn("/items/20/image");
 
         OrderDto result = orderService.getOrCreateOrder(cartId, true);
 
@@ -179,8 +171,6 @@ public class OrderServiceTest {
         assertEquals(1, savedItems.get(1).getCount());
 
         verify(cartItemRepository).findByCartId(cartId);
-        verify(imageService).getImageUrl(10L);
-        verify(imageService).getImageUrl(20L);
         verifyNoInteractions(cartRepository);
     }
 

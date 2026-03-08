@@ -51,7 +51,6 @@ public class ItemsServiceTest {
     @BeforeEach
     void setUp() {
         // Заглушки чтобы тесты не падали из-за NPE
-        lenient().when(imageService.getImageUrl(anyLong())).thenReturn("/img.jpg");
         lenient().when(cartService.getItemCounts(anyList())).thenReturn(Map.of()); // все count - 0
     }
 
@@ -95,8 +94,6 @@ public class ItemsServiceTest {
 
         verify(cartService).getItemCounts(itemIdsCaptor.capture());
         assertEquals(List.of(1L), itemIdsCaptor.getValue());
-        verify(imageService).getImageUrl(1L);
-        verify(imageService, never()).getImageUrl(2L);
     }
 
     @Test
@@ -126,7 +123,6 @@ public class ItemsServiceTest {
 
         verify(cartService).getItemCounts(itemIdsCaptor.capture());
         assertEquals(List.of(1L, 2L, 3L), itemIdsCaptor.getValue());
-        verify(imageService, times(3)).getImageUrl(anyLong());
     }
 
     @Test
@@ -160,7 +156,6 @@ public class ItemsServiceTest {
 
         verify(cartService).getItemCounts(itemIdsCaptor.capture());
         assertEquals(List.of(1L, 2L, 3L, 4L), itemIdsCaptor.getValue());
-        verify(imageService, times(4)).getImageUrl(anyLong());
     }
 
     @Test
@@ -195,6 +190,5 @@ public class ItemsServiceTest {
 
         verify(cartService).getItemCounts(itemIdsCaptor.capture());
         assertEquals(List.of(1L, 2L, 3L, 4L, 5L), itemIdsCaptor.getValue());
-        verify(imageService, times(5)).getImageUrl(anyLong());
     }
 }

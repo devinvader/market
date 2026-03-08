@@ -43,7 +43,7 @@ public class AdminController {
     @GetMapping("/items/new")
     public ModelAndView showAddItemForm() {
         ModelAndView modelAndView = new ModelAndView("add-item");
-        modelAndView.addObject("item", new ItemDto(-1L, "", "", "", 0L, 0));
+        modelAndView.addObject("item", ItemDto.empty());
         return modelAndView;
     }
 
@@ -70,7 +70,7 @@ public class AdminController {
     @GetMapping("/items/{id}/edit")
     public ModelAndView showEditItemForm(@PathVariable Long id) {
         Item item = adminService.findItemById(id);
-        ItemDto itemDto = new ItemDto(item.getId(), item.getTitle(), item.getDescription(), imageService.getImageUrl(id), item.getPrice(), 0);
+        ItemDto itemDto = new ItemDto(item.getId(), item.getTitle(), item.getDescription(), item.getPrice(), 0);
         ModelAndView modelAndView = new ModelAndView("edit-item");
         modelAndView.addObject("item", itemDto);
         return modelAndView;

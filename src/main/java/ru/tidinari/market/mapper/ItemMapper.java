@@ -6,12 +6,11 @@ import ru.tidinari.market.web.dto.ItemDto;
 
 @Component
 public class ItemMapper {
-    public ItemDto toDto(Item item, String imgPath, int count) {
+    public ItemDto toDto(Item item, int count) {
         return new ItemDto(
                 item.getId(),
                 item.getTitle(),
                 item.getDescription(),
-                imgPath,
                 item.getPrice(),
                 count
         );

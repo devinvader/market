@@ -2,7 +2,6 @@ package ru.tidinari.market.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.tidinari.market.domain.Image;
@@ -54,9 +53,5 @@ public class ImageService {
         if (imageId != null) {
             imageRepository.deleteById(imageId);
         }
-    }
-
-    public String getImageUrl(Long itemId) {
-        return "items/" + itemId + "/image";
     }
 }

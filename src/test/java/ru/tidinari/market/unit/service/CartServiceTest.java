@@ -82,7 +82,6 @@ public class CartServiceTest {
 
         when(cartRepository.findById(CART_ID)).thenReturn(Optional.of(cart));
         when(cartItemRepository.findByCartId(CART_ID)).thenReturn(List.of(cartItem));
-        when(imageService.getImageUrl(10L)).thenReturn("/img1.jpg");
 
         // when
         List<ItemDto> result = cartService.getCartItems();
@@ -94,7 +93,6 @@ public class CartServiceTest {
         assertEquals("Item1", dto.title());
         assertEquals(1000L, dto.price());
         assertEquals(2, dto.count());
-        verify(imageService).getImageUrl(10L);
     }
 
     @Test
@@ -150,16 +148,12 @@ public class CartServiceTest {
 
         when(cartRepository.findById(CART_ID)).thenReturn(Optional.of(cart));
         when(cartItemRepository.findByCartId(CART_ID)).thenReturn(List.of(cartItem1, cartItem2));
-        when(imageService.getImageUrl(10L)).thenReturn("/img1.jpg");
-        when(imageService.getImageUrl(20L)).thenReturn("/img2.jpg");
 
         // when
         int total = cartService.getTotal();
 
         // then
         assertEquals(1000 * 2 + 500 * 3, total);
-        verify(imageService).getImageUrl(10L);
-        verify(imageService).getImageUrl(20L);
     }
 
     @Test
@@ -203,7 +197,6 @@ public class CartServiceTest {
         when(cartItemRepository.findByCartIdAndItemId(CART_ID, 10L)).thenReturn(existing);
         when(cartItemRepository.save(existing)).thenReturn(existing);
         when(cartItemRepository.findByCartId(CART_ID)).thenReturn(List.of(existing));
-        when(imageService.getImageUrl(10L)).thenReturn("/img1.jpg");
 
         // when
         List<ItemDto> result = cartService.actOnCartItems(10L, ActionTypeDto.PLUS);
@@ -211,7 +204,6 @@ public class CartServiceTest {
         // then
         assertEquals(3, existing.getCount());
         verify(cartItemRepository).save(existing);
-        verify(imageService).getImageUrl(10L);
         assertEquals(1, result.size());
     }
 
@@ -280,7 +272,6 @@ public class CartServiceTest {
         when(cartItemRepository.findByCartIdAndItemId(CART_ID, 10L)).thenReturn(existing);
         when(cartItemRepository.save(existing)).thenReturn(existing);
         when(cartItemRepository.findByCartId(CART_ID)).thenReturn(List.of(existing));
-        when(imageService.getImageUrl(10L)).thenReturn("/img1.jpg");
 
         // when
         List<ItemDto> result = cartService.actOnCartItems(10L, ActionTypeDto.MINUS);
@@ -289,7 +280,6 @@ public class CartServiceTest {
         assertEquals(1, existing.getCount());
         verify(cartItemRepository).save(existing);
         verify(cartItemRepository, never()).delete(any());
-        verify(imageService).getImageUrl(10L);
         assertEquals(1, result.size());
     }
 

@@ -40,7 +40,6 @@ public class ItemsService {
         List<ItemDto> items = itemList.stream()
                 .map(item -> itemMapper.toDto(
                         item,
-                        imageService.getImageUrl(item.getId()),
                         counts.getOrDefault(item.getId(), 0)
                 ))
                 .toList();
@@ -70,6 +69,6 @@ public class ItemsService {
         Item item = itemRepository.findById(id).orElseThrow(() -> new RuntimeException("Item not found"));
         Map<Long, Integer> counts = cartService.getItemCounts(List.of(id));
         int count = counts.getOrDefault(id, 0);
-        return itemMapper.toDto(item, imageService.getImageUrl(id), count);
+        return itemMapper.toDto(item, count);
     }
 }
