@@ -6,8 +6,8 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
     <!-- Подключение основных миграций -->
-    <include file="db/changelog/db.changelog-001-init.xml" relativeToChangelogFile="true"/>
+    <include file="db/changelog/db.changelog-001-init.xml"/>
     <!-- Тестовые данные -->
-    <include file="db/changelog/db.changelog-901-test-data.xml" relativeToChangelogFile="true"/>
+    <include file="db/changelog/db.changelog-901-test-data.xml"/>
 
 </databaseChangeLog>

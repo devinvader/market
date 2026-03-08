@@ -74,18 +74,15 @@
     <!-- Добавление тестовых изображений -->
     <changeSet id="006-insert-test-images" author="market">
         <insert tableName="images">
-            <column name="id" value="1"/>
-            <column name="data" value="dummy_image_data_1" type="BLOB"/>
+            <column name="data" value="R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" type="BLOB"/>
             <column name="content_type" value="image/jpeg"/>
         </insert>
         <insert tableName="images">
-            <column name="id" value="2"/>
-            <column name="data" value="dummy_image_data_2" type="BLOB"/>
+            <column name="data" value="R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" type="BLOB"/>
             <column name="content_type" value="image/jpeg"/>
         </insert>
         <insert tableName="images">
-            <column name="id" value="3"/>
-            <column name="data" value="dummy_image_data_3" type="BLOB"/>
+            <column name="data" value="R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" type="BLOB"/>
             <column name="content_type" value="image/jpeg"/>
         </insert>
     </changeSet>
