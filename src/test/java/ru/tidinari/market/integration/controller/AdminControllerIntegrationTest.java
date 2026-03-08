@@ -91,7 +91,7 @@ class AdminControllerIntegrationTest {
         // given
         String title = "Item with Image";
         String description = "Desc";
-        Long price = 3000L;
+        long price = 3000L;
         MockMultipartFile imageFile = new MockMultipartFile(
                 "imageFile",
                 "test.jpg",
@@ -104,7 +104,7 @@ class AdminControllerIntegrationTest {
                         .file(imageFile)
                         .param("title", title)
                         .param("description", description)
-                        .param("price", price.toString()))
+                        .param("price", Long.toString(price)))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(view().name("redirect:/admin"));
 

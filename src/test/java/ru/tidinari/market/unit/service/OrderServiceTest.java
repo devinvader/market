@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -157,7 +156,7 @@ public class OrderServiceTest {
         OrderDto result = orderService.getOrCreateOrder(cartId, true);
 
         assertEquals(100L, result.id());
-        assertEquals(1000 * 3 + 2000 * 1, result.totalSum());
+        assertEquals(1000 * 3 + 2000, result.totalSum());
         assertEquals(2, result.items().size());
 
         verify(cartItemRepository).deleteAll(List.of(cartItem1, cartItem2));

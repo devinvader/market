@@ -9,6 +9,7 @@ import ru.tidinari.market.web.dto.ItemDto;
 import ru.tidinari.market.mapper.ItemMapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @SpringBootTest(classes = ItemMapper.class)
 class ItemMapperTest {
@@ -45,7 +46,7 @@ class ItemMapperTest {
 
         assertEquals(10L, dto.id());
         assertEquals("Item", dto.title());
-        assertEquals(null, dto.description());
+        assertNull(dto.description());
         assertEquals(100L, dto.price());
         assertEquals(2, dto.count());
     }

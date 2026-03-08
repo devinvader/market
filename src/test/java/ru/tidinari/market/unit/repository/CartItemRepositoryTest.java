@@ -41,7 +41,7 @@ public class CartItemRepositoryTest extends BaseRepositoryTest {
         cartItem.setCount(2);
 
         // when
-        CartItem savedCartItem = cartItemRepository.save(cartItem);
+        cartItemRepository.save(cartItem);
         CartItemId cartItemId = new CartItemId(savedCart.getId(), savedItem.getId());
         CartItem foundCartItem = cartItemRepository.findById(cartItemId).orElse(null);
 
@@ -115,7 +115,7 @@ public class CartItemRepositoryTest extends BaseRepositoryTest {
         cartItem.setCart(savedCart);
         cartItem.setItem(savedItem);
         cartItem.setCount(2);
-        CartItem savedCartItem = cartItemRepository.save(cartItem);
+        cartItemRepository.save(cartItem);
 
         // when
         CartItemId cartItemId = new CartItemId(savedCart.getId(), savedItem.getId());

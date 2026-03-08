@@ -6,7 +6,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.tidinari.market.domain.Item;
-import ru.tidinari.market.repository.ImageRepository;
 import ru.tidinari.market.service.AdminService;
 import ru.tidinari.market.service.ImageService;
 import ru.tidinari.market.service.ItemsService;

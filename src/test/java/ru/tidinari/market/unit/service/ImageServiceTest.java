@@ -89,7 +89,7 @@ public class ImageServiceTest {
     }
 
     @Test
-    void saveImage_itemNotFound_throwsException() throws IOException {
+    void saveImage_itemNotFound_throwsException() {
         // given
         MultipartFile file = mock(MultipartFile.class);
         when(itemRepository.findById(ITEM_ID)).thenReturn(Optional.empty());
