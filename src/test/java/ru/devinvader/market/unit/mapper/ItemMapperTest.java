@@ -1,0 +1,53 @@
+package ru.devinvader.market.unit.mapper;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import ru.devinvader.market.domain.Item;
+import ru.devinvader.market.web.dto.ItemDto;
+import ru.devinvader.market.mapper.ItemMapper;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
+@SpringBootTest(classes = ItemMapper.class)
+class ItemMapperTest {
+    @Autowired
+    private ItemMapper itemMapper;
+
+    @Test
+    void toDto_withValidItem_returnsCorrectDto() {
+        Item item = new Item();
+        item.setId(1L);
+        item.setTitle("Test Item");
+        item.setDescription("Test Description");
+        item.setPrice(1000L);
+
+        ItemDto dto = itemMapper.toDto(item, 5);
+
+        assertEquals(1L, dto.id());
+        assertEquals("Test Item", dto.title());
+        assertEquals("Test Description", dto.description());
+        assertEquals(1000L, dto.price());
+        assertEquals(5, dto.count());
+    }
+
+
+    @Test
+    void toDto_withDifferentParameters_returnsCorrectDto() {
+        Item item = new Item();
+        item.setId(10L);
+        item.setTitle("Item");
+        item.setDescription(null);
+        item.setPrice(100L);
+
+        ItemDto dto = itemMapper.toDto(item, 2);
+
+        assertEquals(10L, dto.id());
+        assertEquals("Item", dto.title());
+        assertNull(dto.description());
+        assertEquals(100L, dto.price());
+        assertEquals(2, dto.count());
+    }
+}
