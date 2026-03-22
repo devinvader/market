@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 import ru.devinvader.market.domain.Item;
 import ru.devinvader.market.repository.ItemRepository;
 import ru.devinvader.market.web.dto.ItemDto;
@@ -18,7 +17,6 @@ import ru.devinvader.market.mapper.ItemMapper;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service

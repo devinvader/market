@@ -2,17 +2,16 @@ package ru.devinvader.market.web.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.ModelAndView;
+import reactor.core.publisher.Mono;
 import ru.devinvader.market.service.CartService;
 import ru.devinvader.market.service.ItemsService;
 import ru.devinvader.market.web.dto.ActionTypeDto;
-import ru.devinvader.market.web.dto.PagedListItemDto;
 import ru.devinvader.market.web.dto.SortTypeDto;
-import ru.devinvader.market.web.dto.*;
 
 @Controller
 @RequiredArgsConstructor
@@ -22,23 +21,25 @@ public class ItemsController {
     private final CartService cartService;
 
     @GetMapping(path = {"/", "/items"})
-    public ModelAndView getItems(
+    public Mono<String> getItems(
             @RequestParam(name = "search", required = false, defaultValue = "") String search,
             @RequestParam(name = "sort", required = false, defaultValue = "NO") SortTypeDto sortType,
             @RequestParam(name = "pageNumber", required = false, defaultValue = "0") Integer page,
-            @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer size
+            @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer size,
+            Model model
     ) {
-        ModelAndView modelAndView = new ModelAndView("items");
-        modelAndView.addObject("search", search);
-        modelAndView.addObject("sort", sortType.name());
-        PagedListItemDto pagedItems = itemsService.getItems(search, sortType, page, size);
-        modelAndView.addObject("paging", pagedItems.pagingDto());
-        modelAndView.addObject("items", pagedItems.items());
-        return modelAndView;
+        return itemsService.getItems(search, sortType, page, size)
+                .map(pagedItems -> {
+                    model.addAttribute("search", search);
+                    model.addAttribute("sort", sortType.name());
+                    model.addAttribute("paging", pagedItems.pagingDto());
+                    model.addAttribute("items", pagedItems.items());
+                    return "items";
+                });
     }
 
     @PostMapping("/items")
-    public ModelAndView actOnItems(
+    public Mono<String> actOnItems(
             @RequestParam(name = "id") long id,
             @RequestParam(name = "action") ActionTypeDto action,
             @RequestParam(name = "search", required = false, defaultValue = "") String search,
@@ -46,41 +47,36 @@ public class ItemsController {
             @RequestParam(name = "pageNumber", required = false, defaultValue = "0") Integer page,
             @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer size
     ) {
-        // Добавляем товар в корзину
-        cartService.actOnCartItems(id, action);
-
-        ModelAndView modelAndView = new ModelAndView("redirect:/items");
-        modelAndView.addObject("search", search);
-        modelAndView.addObject("sort", sortType.name());
-        modelAndView.addObject("pageNumber", page);
-        modelAndView.addObject("pageSize", size);
-        return modelAndView;
+        return cartService.actOnCartItems(id, action)
+                .then(Mono.just("redirect:/items"))
+                .map(redirect -> redirect + "?search=" + search + "&sort=" + sortType.name() +
+                        "&pageNumber=" + page + "&pageSize=" + size);
     }
 
     @GetMapping("/items/{id}")
-    public ModelAndView getItem(
-            @PathVariable(name = "id") long id
+    public Mono<String> getItem(
+            @PathVariable(name = "id") long id,
+            Model model
     ) {
-        ModelAndView modelAndView = new ModelAndView("item");
-        modelAndView.addObject("item", itemsService.getItem(id));
-        return modelAndView;
+        return itemsService.getItem(id)
+                .map(item -> {
+                    model.addAttribute("item", item);
+                    return "item";
+                });
     }
 
     @PostMapping("/items/{id}")
-    public ModelAndView actOnItem(
+    public Mono<String> actOnItem(
             @PathVariable(name = "id") long id,
             @RequestParam(name = "action") ActionTypeDto action
     ) {
-        cartService.actOnCartItems(id, action);
-
-        return new ModelAndView("redirect:/items/" + id);
+        return cartService.actOnCartItems(id, action)
+                .then(Mono.just("redirect:/items/" + id));
     }
 
     @PostMapping("/buy")
-    public ModelAndView buyItems() {
-        long cartId = cartService.getUserCart().getId();
-        ModelAndView modelAndView = new ModelAndView("redirect:/orders/" + cartId);
-        modelAndView.addObject("newOrder", true);
-        return modelAndView;
+    public Mono<String> buyItems() {
+        return cartService.getUserCart()
+                .map(cart -> "redirect:/orders/" + cart.getId() + "?newOrder=true");
     }
 }

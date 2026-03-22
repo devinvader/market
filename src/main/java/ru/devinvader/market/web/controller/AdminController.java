@@ -1,18 +1,15 @@
 package ru.devinvader.market.web.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.ModelAndView;
+import reactor.core.publisher.Mono;
 import ru.devinvader.market.service.AdminService;
-
 import ru.devinvader.market.service.ItemsService;
 import ru.devinvader.market.web.dto.ItemDto;
-import ru.devinvader.market.web.dto.PagedListItemDto;
 import ru.devinvader.market.web.dto.SortTypeDto;
-
-import java.io.IOException;
 
 @Controller
 @RequestMapping("/admin")
@@ -23,62 +20,64 @@ public class AdminController {
     private final AdminService adminService;
 
     @GetMapping
-    public ModelAndView getAdminPage(
+    public Mono<String> getAdminPage(
             @RequestParam(name = "search", required = false, defaultValue = "") String search,
             @RequestParam(name = "sort", required = false, defaultValue = "NO") SortTypeDto sortType,
             @RequestParam(name = "pageNumber", required = false, defaultValue = "0") Integer page,
-            @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer size
+            @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer size,
+            Model model
     ) {
-        ModelAndView modelAndView = new ModelAndView("admin");
-        modelAndView.addObject("search", search);
-        modelAndView.addObject("sort", sortType.name());
-        PagedListItemDto pagedItems = itemsService.getItems(search, sortType, page, size);
-        modelAndView.addObject("paging", pagedItems.pagingDto());
-        modelAndView.addObject("items", pagedItems.items());
-        return modelAndView;
+        return itemsService.getItems(search, sortType, page, size)
+                .map(pagedItems -> {
+                    model.addAttribute("search", search);
+                    model.addAttribute("sort", sortType.name());
+                    model.addAttribute("paging", pagedItems.pagingDto());
+                    model.addAttribute("items", pagedItems.items());
+                    return "admin";
+                });
     }
 
     @GetMapping("/items/new")
-    public ModelAndView showAddItemForm() {
-        ModelAndView modelAndView = new ModelAndView("add-item");
-        modelAndView.addObject("item", ItemDto.empty());
-        return modelAndView;
+    public Mono<String> showAddItemForm(Model model) {
+        model.addAttribute("item", ItemDto.empty());
+        return Mono.just("add-item");
     }
 
     @PostMapping("/items")
-    public ModelAndView addItem(
+    public Mono<String> addItem(
             @RequestParam String title,
             @RequestParam String description,
             @RequestParam Long price,
-            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile
-    ) throws IOException {
-        adminService.createItem(title, description, price, imageFile);
-        return new ModelAndView("redirect:/admin");
+            @RequestPart(value = "imageFile", required = false) FilePart imageFile
+    ) {
+        return adminService.createItem(title, description, price, imageFile)
+                .thenReturn("redirect:/admin");
     }
 
     @GetMapping("/items/{id}/edit")
-    public ModelAndView showEditItemForm(@PathVariable Long id) {
-        ItemDto itemDto = adminService.getItemDtoById(id);
-        ModelAndView modelAndView = new ModelAndView("edit-item");
-        modelAndView.addObject("item", itemDto);
-        return modelAndView;
+    public Mono<String> showEditItemForm(@PathVariable Long id, Model model) {
+        return adminService.getItemDtoById(id)
+                .map(itemDto -> {
+                    model.addAttribute("item", itemDto);
+                    return "edit-item";
+                });
     }
 
     @PostMapping("/items/{id}")
-    public ModelAndView updateItem(
+    public Mono<String> updateItem(
             @PathVariable Long id,
             @RequestParam String title,
             @RequestParam String description,
             @RequestParam Long price,
-            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile
-    ) throws IOException {
-        adminService.updateItem(id, title, description, price, imageFile);
-        return new ModelAndView("redirect:/admin");
+            @RequestPart(value = "imageFile", required = false) FilePart imageFile
+    ) {
+        return adminService.updateItem(id, title, description, price, imageFile)
+                .thenReturn("redirect:/admin");
     }
 
     @PostMapping("/items/{id}/delete")
-    public ModelAndView deleteItem(@PathVariable Long id) {
-        adminService.deleteItemById(id);
-        return new ModelAndView("redirect:/admin");
+    public Mono<String> deleteItem(@PathVariable Long id) {
+        return adminService.deleteItemById(id)
+                .thenReturn("redirect:/admin");
     }
 }

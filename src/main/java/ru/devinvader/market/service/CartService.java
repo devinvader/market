@@ -27,7 +27,6 @@ public class CartService {
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final ItemRepository itemRepository;
-    private final ImageService imageService;
     private final ItemMapper itemMapper;
 
     // т.к. у нас пока нет ни пользователей, ни сессии, используем один cartId

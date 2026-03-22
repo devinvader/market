@@ -35,9 +35,9 @@ public class OrderService {
 
     public Mono<OrderDto> getOrCreateOrder(long id, boolean newOrder) {
         if (newOrder) {
-            return createOrderFromCart(id);   // id здесь – идентификатор корзины
+            return createOrderFromCart(/* cartId */ id);
         } else {
-            return findOrderDtoById(id)
+            return findOrderDtoById(/* orderId */ id)
                     .switchIfEmpty(Mono.error(new RuntimeException("Order not found")));
         }
     }
