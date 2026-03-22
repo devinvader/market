@@ -1,29 +1,20 @@
 package ru.devinvader.market.domain;
 
-import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Embedded;
+import org.springframework.data.relational.core.mapping.Table;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "cart_items")
-@IdClass(CartItemId.class)
+@Table("cart_items")
 public class CartItem {
     @Id
-    @ManyToOne
-    @JoinColumn(name = "cart_id", nullable = false)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private Cart cart;
+    @Embedded(onEmpty = Embedded.OnEmpty.USE_NULL)
+    private CartItemId id;
 
-    @Id
-    @ManyToOne
-    @JoinColumn(name = "item_id", nullable = false)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private Item item;
-
-    @Column(nullable = false)
     private Integer count;
 }
