@@ -2,7 +2,7 @@ package ru.devinvader.market.unit.repository;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
+import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.Item;
 import ru.devinvader.market.repository.ItemRepository;
 
@@ -20,13 +20,15 @@ public class ItemRepositoryTest extends BaseRepositoryTest {
         item.setPrice(100L);
 
         // when
-        Item savedItem = itemRepository.save(item);
-        Item foundItem = itemRepository.findById(savedItem.getId()).orElse(null);
+        Item savedItem = itemRepository.save(item).block();
 
         // then
-        assertThat(foundItem).isNotNull();
-        assertThat(foundItem.getTitle()).isEqualTo("Test Item");
-        assertThat(foundItem.getPrice()).isEqualTo(100L);
+        StepVerifier.create(itemRepository.findById(savedItem.getId()))
+                .assertNext(found -> {
+                    assertThat(found.getTitle()).isEqualTo("Test Item");
+                    assertThat(found.getPrice()).isEqualTo(100L);
+                })
+                .verifyComplete();
     }
 
     @Test
@@ -35,19 +37,19 @@ public class ItemRepositoryTest extends BaseRepositoryTest {
         Item item1 = new Item();
         item1.setTitle("Apple iPhone");
         item1.setPrice(1000L);
-        itemRepository.save(item1);
+        itemRepository.save(item1).block();
 
         Item item2 = new Item();
         item2.setTitle("Samsung Galaxy");
         item2.setPrice(900L);
-        itemRepository.save(item2);
+        itemRepository.save(item2).block();
 
-        // when
-        var page = itemRepository.searchByTitleOrDescription("apple", PageRequest.of(0, 10));
-
-        // then
-        assertThat(page.getContent()).hasSize(1);
-        assertThat(page.getContent().get(0).getTitle()).isEqualTo("Apple iPhone");
+        // when & then
+        StepVerifier.create(itemRepository.searchByTitleOrDescription("apple", 10, 0))
+                .assertNext(found -> {
+                    assertThat(found.getTitle()).isEqualTo("Apple iPhone");
+                })
+                .verifyComplete();
     }
 
     @Test
@@ -56,13 +58,13 @@ public class ItemRepositoryTest extends BaseRepositoryTest {
         Item item = new Item();
         item.setTitle("Test Item");
         item.setPrice(100L);
-        Item savedItem = itemRepository.save(item);
+        Item savedItem = itemRepository.save(item).block();
 
         // when
-        itemRepository.deleteById(savedItem.getId());
-        Item foundItem = itemRepository.findById(savedItem.getId()).orElse(null);
+        itemRepository.deleteById(savedItem.getId()).block();
 
         // then
-        assertThat(foundItem).isNull();
+        StepVerifier.create(itemRepository.findById(savedItem.getId()))
+                .verifyComplete();
     }
 }
