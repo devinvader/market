@@ -1,22 +1,22 @@
 package ru.devinvader.market.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import java.util.List;
+
+import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.devinvader.market.domain.CartItem;
 import ru.devinvader.market.domain.CartItemId;
 
-import java.util.List;
+public interface CartItemRepository extends ReactiveCrudRepository<CartItem, CartItemId> {
 
-@Repository
-public interface CartItemRepository extends JpaRepository<CartItem, CartItemId> {
-    @Query("SELECT ci FROM CartItem ci WHERE ci.cart.id = :cartId")
-    List<CartItem> findByCartId(@Param("cartId") Long cartId);
-    
-    @Query("SELECT ci FROM CartItem ci WHERE ci.cart.id = :cartId AND ci.item.id = :itemId")
-    CartItem findByCartIdAndItemId(@Param("cartId") Long cartId, @Param("itemId") Long itemId);
-    
-    @Query("SELECT ci FROM CartItem ci WHERE ci.cart.id = :cartId AND ci.item.id IN :itemIds")
-    List<CartItem> findByCartIdAndItemIdIn(@Param("cartId") Long cartId, @Param("itemIds") List<Long> itemIds);
+    Flux<CartItem> findByIdCartId(Long cartId);
+
+    @Query("SELECT * FROM cart_items WHERE cart_id = :cartId AND item_id = :itemId")
+    Mono<CartItem> findByCartIdAndItemId(@Param("cartId") Long cartId, @Param("itemId") Long itemId);
+
+    @Query("SELECT * FROM cart_items WHERE cart_id = :cartId AND item_id IN (:itemIds)")
+    Flux<CartItem> findByCartIdAndItemIdIn(@Param("cartId") Long cartId, @Param("itemIds") List<Long> itemIds);
 }
