@@ -1,16 +1,13 @@
 package ru.devinvader.market.service;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Mono;
 import ru.devinvader.market.domain.Image;
-import ru.devinvader.market.domain.Item;
 import ru.devinvader.market.repository.ImageRepository;
 import ru.devinvader.market.repository.ItemRepository;
-
-import java.io.IOException;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -19,39 +16,54 @@ public class ImageService {
     private final ImageRepository imageRepository;
     private final ItemRepository itemRepository;
 
-    @Transactional
-    public Image saveImage(Long itemId, MultipartFile file) throws IOException {
-        Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Item not found"));
-
-        Optional<Image> image = Optional.ofNullable(item.getImage());
-        if (image.isPresent()) {
-            // Обновляем существующее изображение
-            Image existingImage = image.get();
-            existingImage.setData(file.getBytes());
-            existingImage.setContentType(file.getContentType());
-            return imageRepository.save(existingImage);
-        } else {
-            // Создаем новое изображение
-            Image newImage = new Image();
-            newImage.setData(file.getBytes());
-            newImage.setContentType(file.getContentType());
-            newImage.setItem(item);
-            item.setImage(newImage);
-            Item savedItem = itemRepository.save(item);
-            return savedItem.getImage();
-        }
+    public Mono<Image> saveImage(Long itemId, FilePart filePart) {
+        return itemRepository.findById(itemId)
+                .switchIfEmpty(Mono.error(new RuntimeException("Item not found")))
+                .flatMap(item -> DataBufferUtils.join(filePart.content())
+                        .map(dataBuffer -> {
+                            byte[] bytes = new byte[dataBuffer.readableByteCount()];
+                            dataBuffer.read(bytes);
+                            DataBufferUtils.release(dataBuffer);
+                            return bytes;
+                        })
+                        .flatMap(data -> {
+                            String contentType = filePart.headers().getContentType() != null
+                                    ? filePart.headers().getContentType().toString()
+                                    : "application/octet-stream";
+                            if (item.getImageId() != null) {
+                                // Обновляем существующее изображение
+                                return imageRepository.findById(item.getImageId())
+                                        .flatMap(existingImage -> {
+                                            existingImage.setData(data);
+                                            existingImage.setContentType(contentType);
+                                            return imageRepository.save(existingImage);
+                                        });
+                            } else {
+                                // Создаем новое изображение
+                                return createNewImage(data, contentType)
+                                        .flatMap(savedImage -> {
+                                            item.setImageId(savedImage.getId());
+                                            return itemRepository.save(item).thenReturn(savedImage);
+                                        });
+                            }
+                        })
+                );
     }
 
-    @Transactional
-    public Image getImageByItemId(Long itemId) {
-        return imageRepository.findByItemId(itemId).orElse(null);
+    private Mono<Image> createNewImage(byte[] data, String contentType) {
+        Image newImage = new Image();
+        newImage.setData(data);
+        newImage.setContentType(contentType);
+        return imageRepository.save(newImage);
     }
 
-    public void deleteImageByItemId(Long itemId) {
-        Long imageId = imageRepository.findIdByItemId(itemId);
-        if (imageId != null) {
-            imageRepository.deleteById(imageId);
-        }
+    public Mono<Image> getImageByItemId(Long itemId) {
+        return imageRepository.findByItemId(itemId);
+    }
+
+    public Mono<Void> deleteImageByItemId(Long itemId) {
+        return imageRepository.findIdByItemId(itemId)
+                .flatMap(imageRepository::deleteById)
+                .then();
     }
 }

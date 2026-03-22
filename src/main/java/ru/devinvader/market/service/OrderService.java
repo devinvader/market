@@ -2,17 +2,17 @@ package ru.devinvader.market.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import ru.devinvader.market.domain.CartItem;
-import ru.devinvader.market.domain.Order;
-import ru.devinvader.market.domain.OrderItem;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import ru.devinvader.market.domain.*;
+import ru.devinvader.market.mapper.ItemMapper;
 import ru.devinvader.market.mapper.OrderItemMapper;
 import ru.devinvader.market.repository.CartItemRepository;
+import ru.devinvader.market.repository.ItemRepository;
 import ru.devinvader.market.repository.OrderItemRepository;
 import ru.devinvader.market.repository.OrderRepository;
 import ru.devinvader.market.web.dto.ItemDto;
 import ru.devinvader.market.web.dto.OrderDto;
-import ru.devinvader.market.mapper.ItemMapper;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,67 +24,94 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final CartItemRepository cartItemRepository;
-    private final ImageService imageService;
+    private final ItemRepository itemRepository;
     private final ItemMapper itemMapper;
     private final OrderItemMapper orderMapper;
 
-    public List<OrderDto> getOrders() {
-        List<Order> orders = orderRepository.findAll();
-
-        return orders.stream().map(order -> {
-            List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
-            List<ItemDto> items = orderItems.stream()
-                    .map(orderItem -> itemMapper.toDto(
-                            orderItem.getItem(),
-                            orderItem.getCount()
-                    ))
-                    .collect(Collectors.toList());
-            return new OrderDto(order.getId(), items, order.getTotalSum());
-        }).collect(Collectors.toList());
+    public Flux<OrderDto> getOrders() {
+        return orderRepository.findAll()
+                .flatMap(order -> findOrderDtoById(order.getId()));
     }
 
-    public OrderDto getOrCreateOrder(long id, boolean newOrder) {
+    public Mono<OrderDto> getOrCreateOrder(long id, boolean newOrder) {
         if (newOrder) {
-            // Создаем новый заказ из корзины
-            return createOrderFromCart(id);
+            return createOrderFromCart(id);   // id здесь – идентификатор корзины
         } else {
-            // Получаем существующий заказ
-            Order order = orderRepository.findById(id).orElseThrow(() -> new RuntimeException("Order not found"));
-            List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
-            List<ItemDto> items = orderItems.stream()
-                    .map(orderItem -> itemMapper.toDto(
-                            orderItem.getItem(),
-                            orderItem.getCount()
-                    ))
-                    .collect(Collectors.toList());
-            return new OrderDto(order.getId(), items, order.getTotalSum());
+            return findOrderDtoById(id)
+                    .switchIfEmpty(Mono.error(new RuntimeException("Order not found")));
         }
     }
 
-    private OrderDto createOrderFromCart(long cartId) {
-        List<CartItem> cartItems = cartItemRepository.findByCartId(cartId);
+    private Mono<OrderDto> findOrderDtoById(Long orderId) {
+        return orderRepository.findById(orderId)
+                .switchIfEmpty(Mono.error(new RuntimeException("Order not found")))
+                .flatMap(order -> orderItemRepository.findByOrderId(orderId)
+                        .collectList()
+                        .flatMap(orderItems -> toItemDtosFromOrderItems(orderItems)
+                                .map(items -> new OrderDto(order.getId(), items, order.getTotalSum()))
+                        )
+                );
+    }
 
-        long totalSum = cartItems.stream()
-                .mapToLong(cartItem -> cartItem.getItem().getPrice() * cartItem.getCount())
-                .sum();
-        final Order order = orderRepository.save(new Order(null, totalSum, null));
+    private Mono<OrderDto> createOrderFromCart(long cartId) {
+        return cartItemRepository.findByIdCartId(cartId)
+                .collectList()
+                .flatMap(this::processCartItemsAndCreateOrder);
+    }
 
-        // Создаем элементы заказа
-        orderItemRepository.saveAll(
-                cartItems.stream()
-                        .map(cartItem -> orderMapper.fromDto(order, cartItem))
-                        .toList());
+    private Mono<OrderDto> processCartItemsAndCreateOrder(List<CartItem> cartItems) {
+        if (cartItems.isEmpty()) {
+            return createEmptyOrder();
+        }
+        return calculateTotalSum(cartItems)
+                .flatMap(totalSum -> createOrderAndItems(cartItems, totalSum))
+                .flatMap(order -> clearCartAndReturnDto(cartItems, order));
+    }
 
-        // Cart должна быть очищена после покупки
-        cartItemRepository.deleteAll(cartItems);
+    private Mono<OrderDto> createEmptyOrder() {
+        return orderRepository.save(new Order(null, 0L))
+                .map(order -> new OrderDto(order.getId(), List.of(), 0L));
+    }
 
-        List<ItemDto> items = cartItems.stream()
-                .map(cartItem -> itemMapper.toDto(
-                        cartItem.getItem(),
-                        cartItem.getCount()
-                ))
-                .collect(Collectors.toList());
+    private Mono<Long> calculateTotalSum(List<CartItem> cartItems) {
+        return Flux.fromIterable(cartItems)
+                .flatMap(cartItem -> itemRepository.findById(cartItem.getId().getItemId())
+                        .map(item -> item.getPrice() * cartItem.getCount())
+                )
+                .reduce(0L, Long::sum);
+    }
 
-        return new OrderDto(order.getId(), items, totalSum);
+    private Mono<Order> createOrderAndItems(List<CartItem> cartItems, Long totalSum) {
+        return orderRepository.save(new Order(null, totalSum))
+                .flatMap(order -> {
+                    List<OrderItem> orderItems = cartItems.stream()
+                            .map(cartItem -> orderMapper.fromDto(order, cartItem))
+                            .collect(Collectors.toList());
+                    return orderItemRepository.saveAll(orderItems)
+                            .collectList()
+                            .thenReturn(order);
+                });
+    }
+
+    private Mono<OrderDto> clearCartAndReturnDto(List<CartItem> cartItems, Order order) {
+        return cartItemRepository.deleteAll(cartItems)
+                .then(toItemDtosFromCartItems(cartItems))
+                .map(items -> new OrderDto(order.getId(), items, order.getTotalSum()));
+    }
+
+    private Mono<List<ItemDto>> toItemDtosFromOrderItems(List<OrderItem> orderItems) {
+        return Flux.fromIterable(orderItems)
+                .flatMap(orderItem -> itemRepository.findById(orderItem.getId().getItemId())
+                        .map(item -> itemMapper.toDto(item, orderItem.getCount()))
+                )
+                .collectList();
+    }
+
+    private Mono<List<ItemDto>> toItemDtosFromCartItems(List<CartItem> cartItems) {
+        return Flux.fromIterable(cartItems)
+                .flatMap(cartItem -> itemRepository.findById(cartItem.getId().getItemId())
+                        .map(item -> itemMapper.toDto(item, cartItem.getCount()))
+                )
+                .collectList();
     }
 }
