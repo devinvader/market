@@ -6,7 +6,6 @@ import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.Item;
 import ru.devinvader.market.domain.Order;
 import ru.devinvader.market.domain.OrderItem;
-import ru.devinvader.market.domain.OrderItemId;
 import ru.devinvader.market.repository.ItemRepository;
 import ru.devinvader.market.repository.OrderItemRepository;
 import ru.devinvader.market.repository.OrderRepository;
@@ -35,17 +34,14 @@ public class OrderItemRepositoryTest extends BaseRepositoryTest {
         item.setPrice(100L);
         Item savedItem = itemRepository.save(item).block();
 
-        OrderItemId orderItemId = new OrderItemId(savedOrder.getId(), savedItem.getId());
-        OrderItem orderItem = new OrderItem(orderItemId, 2);
+        OrderItem orderItem = new OrderItem(null, savedOrder.getId(), savedItem.getId(), 2);
 
         // when
         orderItemRepository.save(orderItem).block();
 
         // then
-        StepVerifier.create(orderItemRepository.findById(orderItemId))
-                .assertNext(found -> {
-                    assertThat(found.getCount()).isEqualTo(2);
-                })
+        StepVerifier.create(orderItemRepository.findByOrderId(savedOrder.getId()))
+                .assertNext(found -> assertThat(found.getCount()).isEqualTo(2))
                 .verifyComplete();
     }
 
@@ -61,15 +57,12 @@ public class OrderItemRepositoryTest extends BaseRepositoryTest {
         item.setPrice(100L);
         Item savedItem = itemRepository.save(item).block();
 
-        OrderItemId orderItemId = new OrderItemId(savedOrder.getId(), savedItem.getId());
-        OrderItem orderItem = new OrderItem(orderItemId, 2);
+        OrderItem orderItem = new OrderItem(null, savedOrder.getId(), savedItem.getId(), 2);
         orderItemRepository.save(orderItem).block();
 
         // when & then
         StepVerifier.create(orderItemRepository.findByOrderId(savedOrder.getId()))
-                .assertNext(found -> {
-                    assertThat(found.getCount()).isEqualTo(2);
-                })
+                .assertNext(found -> assertThat(found.getCount()).isEqualTo(2))
                 .verifyComplete();
     }
 
@@ -85,15 +78,14 @@ public class OrderItemRepositoryTest extends BaseRepositoryTest {
         item.setPrice(100L);
         Item savedItem = itemRepository.save(item).block();
 
-        OrderItemId orderItemId = new OrderItemId(savedOrder.getId(), savedItem.getId());
-        OrderItem orderItem = new OrderItem(orderItemId, 2);
+        OrderItem orderItem = new OrderItem(null, savedOrder.getId(), savedItem.getId(), 2);
         orderItemRepository.save(orderItem).block();
 
         // when
-        orderItemRepository.deleteById(orderItemId).block();
+        orderItemRepository.deleteByOrderId(savedOrder.getId()).block();
 
         // then
-        StepVerifier.create(orderItemRepository.findById(orderItemId))
+        StepVerifier.create(orderItemRepository.findByOrderId(savedOrder.getId()))
                 .verifyComplete();
     }
 }

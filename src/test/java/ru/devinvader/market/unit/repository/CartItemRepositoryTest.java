@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.Cart;
 import ru.devinvader.market.domain.CartItem;
-import ru.devinvader.market.domain.CartItemId;
 import ru.devinvader.market.domain.Item;
 import ru.devinvader.market.repository.CartItemRepository;
 import ru.devinvader.market.repository.CartRepository;
@@ -34,17 +33,14 @@ public class CartItemRepositoryTest extends BaseRepositoryTest {
         item.setPrice(100L);
         Item savedItem = itemRepository.save(item).block();
 
-        CartItemId cartItemId = new CartItemId(savedCart.getId(), savedItem.getId());
-        CartItem cartItem = new CartItem(cartItemId, 2);
+        CartItem cartItem = new CartItem(null, savedCart.getId(), savedItem.getId(), 2);
 
         // when
         cartItemRepository.save(cartItem).block();
 
         // then
-        StepVerifier.create(cartItemRepository.findById(cartItemId))
-                .assertNext(found -> {
-                    assertThat(found.getCount()).isEqualTo(2);
-                })
+        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(cart.getId(), item.getId()))
+                .assertNext(found -> assertThat(found.getCount()).isEqualTo(2))
                 .verifyComplete();
     }
 
@@ -59,15 +55,12 @@ public class CartItemRepositoryTest extends BaseRepositoryTest {
         item.setPrice(100L);
         Item savedItem = itemRepository.save(item).block();
 
-        CartItemId cartItemId = new CartItemId(savedCart.getId(), savedItem.getId());
-        CartItem cartItem = new CartItem(cartItemId, 2);
+        CartItem cartItem = new CartItem(null, savedCart.getId(), savedItem.getId(), 2);
         cartItemRepository.save(cartItem).block();
 
         // when & then
-        StepVerifier.create(cartItemRepository.findByIdCartId(savedCart.getId()))
-                .assertNext(found -> {
-                    assertThat(found.getCount()).isEqualTo(2);
-                })
+        StepVerifier.create(cartItemRepository.findByCartId(savedCart.getId()))
+                .assertNext(found -> assertThat(found.getCount()).isEqualTo(2))
                 .verifyComplete();
     }
 
@@ -82,15 +75,12 @@ public class CartItemRepositoryTest extends BaseRepositoryTest {
         item.setPrice(100L);
         Item savedItem = itemRepository.save(item).block();
 
-        CartItemId cartItemId = new CartItemId(savedCart.getId(), savedItem.getId());
-        CartItem cartItem = new CartItem(cartItemId, 2);
+        CartItem cartItem = new CartItem(null, savedCart.getId(), savedItem.getId(), 2);
         cartItemRepository.save(cartItem).block();
 
         // when & then
         StepVerifier.create(cartItemRepository.findByCartIdAndItemId(savedCart.getId(), savedItem.getId()))
-                .assertNext(found -> {
-                    assertThat(found.getCount()).isEqualTo(2);
-                })
+                .assertNext(found -> assertThat(found.getCount()).isEqualTo(2))
                 .verifyComplete();
     }
 
@@ -105,15 +95,14 @@ public class CartItemRepositoryTest extends BaseRepositoryTest {
         item.setPrice(100L);
         Item savedItem = itemRepository.save(item).block();
 
-        CartItemId cartItemId = new CartItemId(savedCart.getId(), savedItem.getId());
-        CartItem cartItem = new CartItem(cartItemId, 2);
+        CartItem cartItem = new CartItem(null, savedCart.getId(), savedItem.getId(), 2);
         cartItemRepository.save(cartItem).block();
 
         // when
-        cartItemRepository.deleteById(cartItemId).block();
+        cartItemRepository.deleteByCartId(savedCart.getId()).block();
 
         // then
-        StepVerifier.create(cartItemRepository.findById(cartItemId))
+        StepVerifier.create(cartItemRepository.findByCartId(savedCart.getId()))
                 .verifyComplete();
     }
 }

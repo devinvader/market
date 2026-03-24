@@ -2,9 +2,10 @@ package ru.devinvader.market.unit.repository;
 
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import ru.devinvader.market.TestLiquibaseConfiguration;
 import ru.devinvader.market.TestcontainersConfiguration;
 
 @SpringBootTest
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class, TestLiquibaseConfiguration.class})
 public abstract class BaseRepositoryTest {
 }

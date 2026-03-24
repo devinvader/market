@@ -55,8 +55,8 @@ public class ItemsService {
     }
 
     private Mono<Tuple2<List<Item>, Long>> fetchItemsAndTotal(String search, Pageable pageable) {
-        Flux<Item> itemsFlux = itemRepository.searchByTitleOrDescription(search, pageable);
-        Mono<Long> totalMono = itemRepository.countByTitleOrDescription(search);
+        Flux<Item> itemsFlux = itemRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(search, search, pageable);
+        Mono<Long> totalMono = itemRepository.countByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(search, search);
         return Mono.zip(itemsFlux.collectList(), totalMono);
     }
 

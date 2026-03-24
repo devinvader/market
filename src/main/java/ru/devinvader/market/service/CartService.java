@@ -1,17 +1,12 @@
 package ru.devinvader.market.service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.springframework.stereotype.Service;
-
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.devinvader.market.domain.Cart;
 import ru.devinvader.market.domain.CartItem;
-import ru.devinvader.market.domain.CartItemId;
 import ru.devinvader.market.domain.Item;
 import ru.devinvader.market.mapper.ItemMapper;
 import ru.devinvader.market.repository.CartItemRepository;
@@ -20,6 +15,11 @@ import ru.devinvader.market.repository.ItemRepository;
 import ru.devinvader.market.web.dto.ActionTypeDto;
 import ru.devinvader.market.web.dto.ItemDto;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CartService {
@@ -34,8 +34,8 @@ public class CartService {
 
     public Flux<ItemDto> getCartItems() {
         Flux<CartItem> cartItems = getUserCart()
-                .flatMapMany(cart -> cartItemRepository.findByIdCartId(cart.getId()));
-        Flux<Long> cartItemsId = cartItems.map(CartItem::getId).map(CartItemId::getItemId);
+                .flatMapMany(cart -> cartItemRepository.findByCartId(cart.getId()));
+        Flux<Long> cartItemsId = cartItems.map(CartItem::getItemId);
         Flux<Item> items = itemRepository.findAllById(cartItemsId)
                 // чтобы запросить сразу всё и т.к. из ReactiveCrudRepository#findAllById:
                 // "Note that the order of elements in the result is not guaranteed."
@@ -61,7 +61,7 @@ public class CartService {
                         .map(cartItems -> {
                             Map<Long, Integer> counts = new HashMap<>();
                             for (CartItem ci : cartItems) {
-                                counts.put(ci.getId().getItemId(), ci.getCount());
+                                counts.put(ci.getItemId(), ci.getCount());
                             }
                             return counts;
                         }));
@@ -70,7 +70,7 @@ public class CartService {
     public Flux<ItemDto> actOnCartItems(long id, ActionTypeDto action) {
         return getUserCart()
                 .flatMap(cart -> cartItemRepository.findByCartIdAndItemId(cart.getId(), id)
-                        .switchIfEmpty(Mono.error(new RuntimeException("Cart item not found with id: " + id)))
+                        .switchIfEmpty(Mono.just(new CartItem(null, cart.getId(), id, 0)))
                         .flatMap(cartItem -> handleAction(cartItem, action))
                         .then()
                 )

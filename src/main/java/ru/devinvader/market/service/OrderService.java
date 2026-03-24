@@ -54,7 +54,7 @@ public class OrderService {
     }
 
     private Mono<OrderDto> createOrderFromCart(long cartId) {
-        return cartItemRepository.findByIdCartId(cartId)
+        return cartItemRepository.findByCartId(cartId)
                 .collectList()
                 .flatMap(this::processCartItemsAndCreateOrder);
     }
@@ -75,7 +75,7 @@ public class OrderService {
 
     private Mono<Long> calculateTotalSum(List<CartItem> cartItems) {
         return Flux.fromIterable(cartItems)
-                .flatMap(cartItem -> itemRepository.findById(cartItem.getId().getItemId())
+                .flatMap(cartItem -> itemRepository.findById(cartItem.getItemId())
                         .map(item -> item.getPrice() * cartItem.getCount())
                 )
                 .reduce(0L, Long::sum);
@@ -101,7 +101,7 @@ public class OrderService {
 
     private Mono<List<ItemDto>> toItemDtosFromOrderItems(List<OrderItem> orderItems) {
         return Flux.fromIterable(orderItems)
-                .flatMap(orderItem -> itemRepository.findById(orderItem.getId().getItemId())
+                .flatMap(orderItem -> itemRepository.findById(orderItem.getItemId())
                         .map(item -> itemMapper.toDto(item, orderItem.getCount()))
                 )
                 .collectList();
@@ -109,7 +109,7 @@ public class OrderService {
 
     private Mono<List<ItemDto>> toItemDtosFromCartItems(List<CartItem> cartItems) {
         return Flux.fromIterable(cartItems)
-                .flatMap(cartItem -> itemRepository.findById(cartItem.getId().getItemId())
+                .flatMap(cartItem -> itemRepository.findById(cartItem.getItemId())
                         .map(item -> itemMapper.toDto(item, cartItem.getCount()))
                 )
                 .collectList();

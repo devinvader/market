@@ -1,11 +1,9 @@
 package ru.devinvader.market.domain;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.relational.core.mapping.Embedded;
+import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
+import lombok.*;
 
 @Data
 @NoArgsConstructor
@@ -13,8 +11,13 @@ import org.springframework.data.relational.core.mapping.Table;
 @Table("cart_items")
 public class CartItem {
     @Id
-    @Embedded(onEmpty = Embedded.OnEmpty.USE_NULL)
-    private CartItemId id;
+    private Long id;
+
+    @Column("cart_id")
+    private Long cartId;
+
+    @Column("item_id")
+    private Long itemId;
 
     private Integer count;
 }

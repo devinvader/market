@@ -62,7 +62,7 @@ public class ImageService {
     }
 
     public Mono<Void> deleteImageByItemId(Long itemId) {
-        return imageRepository.findIdByItemId(itemId)
+        return imageRepository.findImageIdByItemId(itemId)
                 .flatMap(imageRepository::deleteById)
                 .then();
     }
