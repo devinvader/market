@@ -4,14 +4,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import reactor.core.publisher.Mono;
 import ru.devinvader.market.service.CartService;
 import ru.devinvader.market.service.ItemsService;
-import ru.devinvader.market.web.dto.ActionTypeDto;
 import ru.devinvader.market.web.dto.SortTypeDto;
+import ru.devinvader.market.web.dto.ItemsActionDto;
+import ru.devinvader.market.web.dto.ItemActionDto;
 
 @Controller
 @RequiredArgsConstructor
@@ -39,18 +41,15 @@ public class ItemsController {
     }
 
     @PostMapping("/items")
-    public Mono<String> actOnItems(
-            @RequestParam(name = "id") long id,
-            @RequestParam(name = "action") ActionTypeDto action,
-            @RequestParam(name = "search", required = false, defaultValue = "") String search,
-            @RequestParam(name = "sortType", required = false, defaultValue = "NO") SortTypeDto sortType,
-            @RequestParam(name = "pageNumber", required = false, defaultValue = "0") Integer page,
-            @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer size
-    ) {
-        return cartService.actOnCartItems(id, action)
+    public Mono<String> actOnItems(@ModelAttribute ItemsActionDto dto) {
+        String search = dto.search() != null ? dto.search() : "";
+        SortTypeDto sort = dto.sort() != null ? dto.sort() : SortTypeDto.NO;
+        int pageNumber = dto.pageNumber() != null ? dto.pageNumber() : 0;
+        int pageSize = dto.pageSize() != null ? dto.pageSize() : 10;
+        return cartService.actOnCartItems(dto.id(), dto.action())
                 .then(Mono.just("redirect:/items"))
-                .map(redirect -> redirect + "?search=" + search + "&sort=" + sortType.name() +
-                        "&pageNumber=" + page + "&pageSize=" + size);
+                .map(redirect -> redirect + "?search=" + search + "&sort=" + sort.name() +
+                        "&pageNumber=" + pageNumber + "&pageSize=" + pageSize);
     }
 
     @GetMapping("/items/{id}")
@@ -68,9 +67,9 @@ public class ItemsController {
     @PostMapping("/items/{id}")
     public Mono<String> actOnItem(
             @PathVariable(name = "id") long id,
-            @RequestParam(name = "action") ActionTypeDto action
+            @ModelAttribute ItemActionDto dto
     ) {
-        return cartService.actOnCartItems(id, action)
+        return cartService.actOnCartItems(id, dto.action())
                 .then(Mono.just("redirect:/items/" + id));
     }
 

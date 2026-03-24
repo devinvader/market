@@ -1,15 +1,17 @@
 package ru.devinvader.market.web.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import ru.devinvader.market.service.AdminService;
 import ru.devinvader.market.service.ItemsService;
+import ru.devinvader.market.web.dto.AddItemForm;
 import ru.devinvader.market.web.dto.ItemDto;
 import ru.devinvader.market.web.dto.SortTypeDto;
+import ru.devinvader.market.web.dto.UpdateItemForm;
 
 @Controller
 @RequestMapping("/admin")
@@ -43,14 +45,10 @@ public class AdminController {
         return Mono.just("add-item");
     }
 
-    @PostMapping("/items")
-    public Mono<String> addItem(
-            @RequestParam String title,
-            @RequestParam String description,
-            @RequestParam Long price,
-            @RequestPart(value = "imageFile", required = false) FilePart imageFile
-    ) {
-        return adminService.createItem(title, description, price, imageFile)
+    @PostMapping(value = "/items", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Mono<String> addItem(@ModelAttribute AddItemForm itemForm) {
+        return adminService.createItem(itemForm.title(), itemForm.description(),
+                        itemForm.price(), itemForm.imageFile())
                 .thenReturn("redirect:/admin");
     }
 
@@ -63,15 +61,12 @@ public class AdminController {
                 });
     }
 
-    @PostMapping("/items/{id}")
+    @PostMapping(value = "/items/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Mono<String> updateItem(
             @PathVariable Long id,
-            @RequestParam String title,
-            @RequestParam String description,
-            @RequestParam Long price,
-            @RequestPart(value = "imageFile", required = false) FilePart imageFile
+            @ModelAttribute UpdateItemForm form
     ) {
-        return adminService.updateItem(id, title, description, price, imageFile)
+        return adminService.updateItem(id, form.title(), form.description(), form.price(), form.imageFile())
                 .thenReturn("redirect:/admin");
     }
 
