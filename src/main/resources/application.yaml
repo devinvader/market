@@ -3,10 +3,11 @@ spring:
     name: market
   r2dbc:
     url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/market}
-    username: ${SPRING_R2DBC_USERNAME:postgres}
-    password: ${SPRING_R2DBC_PASSWORD:postgres}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   liquibase: # т.к. использует JDBC, нужны отдельные переменные писать :(
+    enabled: true
     change-log: classpath:db/changelog/db.changelog-master.xml
     url: ${SPRING_LIQUIBASE_URL:jdbc:postgresql://localhost:5432/market}
-    user: ${SPRING_LIQUIBASE_USER:postgres}
-    password: ${SPRING_LIQUIBASE_PASSWORD:postgres}
+    user: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
