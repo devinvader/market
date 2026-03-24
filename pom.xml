@@ -22,17 +22,30 @@
     </properties>
 
     <dependencies>
-        <!-- Ликвидбейс пока оставлю, т.к. не хочу переходить на Flyway -->
-        <!-- А на SO написано, что ликвидбейс не поддерживает напрямую реактивный стек -->
+        <!-- Ликвидбейс для миграций -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-liquibase</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.liquibase</groupId>
             <artifactId>liquibase-core</artifactId>
-            <version>4.25.1</version>
         </dependency>
+        <!-- На SO написано, что ликвидбейс не поддерживает напрямую реактивный стек -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
+        </dependency>
+        <!-- Шаблонизатор -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+        <!-- Логирование -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-log4j2</artifactId>
         </dependency>
         <!-- Реактивный стек -->
         <dependency>

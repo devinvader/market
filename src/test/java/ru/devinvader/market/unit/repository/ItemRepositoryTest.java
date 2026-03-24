@@ -2,6 +2,7 @@ package ru.devinvader.market.unit.repository;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.Item;
 import ru.devinvader.market.repository.ItemRepository;
@@ -9,11 +10,12 @@ import ru.devinvader.market.repository.ItemRepository;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ItemRepositoryTest extends BaseRepositoryTest {
+
     @Autowired
     private ItemRepository itemRepository;
 
     @Test
-    public void saveAndFindById_givenItem_whenSave_thenFindById() {
+    void saveAndFindById_givenValidItem_shouldPersistAndRetrieve() {
         // given
         Item item = new Item();
         item.setTitle("Test Item");
@@ -32,7 +34,7 @@ public class ItemRepositoryTest extends BaseRepositoryTest {
     }
 
     @Test
-    public void searchByTitleOrDescription_givenItems_whenSearch_thenReturnMatching() {
+    void searchByTitleOrDescription_givenFindTerm_shouldReturnMatchingItemsContainingIgnoreCase() {
         // given
         Item item1 = new Item();
         item1.setTitle("Apple iPhone");
@@ -45,19 +47,17 @@ public class ItemRepositoryTest extends BaseRepositoryTest {
         itemRepository.save(item2).block();
 
         // when & then
-        StepVerifier.create(itemRepository.searchByTitleOrDescription("apple", 10, 0))
-                .assertNext(found -> {
-                    assertThat(found.getTitle()).isEqualTo("Apple iPhone");
-                })
+        StepVerifier.create(itemRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase("apple", "apple", PageRequest.of(0, 10)))
+                .assertNext(found -> assertThat(found.getTitle()).isEqualTo("Apple iPhone"))
                 .verifyComplete();
     }
 
     @Test
-    public void delete_givenItem_whenDelete_thenNotFound() {
+    void delete_givenExistingItem_shouldRemoveItFromDatabase() {
         // given
         Item item = new Item();
-        item.setTitle("Test Item");
-        item.setPrice(100L);
+        item.setTitle("Database");
+        item.setPrice(1500L);
         Item savedItem = itemRepository.save(item).block();
 
         // when
