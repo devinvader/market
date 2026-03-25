@@ -1,114 +1,100 @@
 package ru.devinvader.market.integration.controller;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.WebApplicationContext;
-import ru.devinvader.market.TestcontainersConfiguration;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.CartItem;
 import ru.devinvader.market.repository.CartItemRepository;
 import ru.devinvader.market.web.dto.ActionTypeDto;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
-@TestPropertySource(properties = {
-    "spring.liquibase.change-log=classpath:/db/changelog/db.changelog-test-data.xml"
-})
-class CartControllerIntegrationTest {
+class CartControllerIntegrationTest extends IntegrationBaseTest {
 
     @Autowired
-    private WebApplicationContext webApplicationContext;
-
-    private MockMvc mockMvc;
+    private WebTestClient webTestClient;
 
     @Autowired
     private CartItemRepository cartItemRepository;
 
-    @BeforeEach
-    void setUp() {
-        this.mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    @Test
+    void getItems_shouldReturnCartView() {
+        webTestClient.get().uri("/cart/items")
+                .exchange()
+                .expectStatus().isOk();
     }
 
     @Test
-    void getItems_shouldReturnCartView() throws Exception {
-        mockMvc.perform(get("/cart/items"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("cart"))
-                .andExpect(model().attributeExists("items"))
-                .andExpect(model().attributeExists("total"));
-    }
-
-    @Test
-    void actOnItems_increaseCount_shouldUpdateCart() throws Exception {
+    void actOnItems_increaseCount_shouldUpdateCart() {
         // given
         long itemId = 1L;
-        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId);
-        int initialCount = existing.getCount();
+        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId).block();
+        int initialCount = existing != null ? existing.getCount() : 0;
 
         // when
-        mockMvc.perform(post("/cart/items")
-                        .param("id", String.valueOf(itemId))
-                        .param("action", ActionTypeDto.PLUS.name()))
-                .andExpect(status().isOk())
-                .andExpect(view().name("cart"))
-                .andExpect(model().attributeExists("items"))
-                .andExpect(model().attributeExists("total"));
+        webTestClient.post().uri(uriBuilder -> uriBuilder
+                        .path("/cart/items")
+                        .queryParam("id", itemId)
+                        .queryParam("action", ActionTypeDto.PLUS.name())
+                        .build())
+                .exchange()
+                .expectStatus().isOk();
 
         // then
-        CartItem updated = cartItemRepository.findByCartIdAndItemId(1L, itemId);
-        assertThat(updated.getCount(), equalTo(initialCount + 1));
+        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
+                .assertNext(updated -> {
+                    assertThat(updated, notNullValue());
+                    assertThat(updated.getCount(), equalTo(initialCount + 1));
+                })
+                .verifyComplete();
     }
 
     @Test
-    void actOnItems_decreaseCount_shouldUpdateCart() throws Exception {
+    void actOnItems_decreaseCount_shouldUpdateCart() {
         // given
         long itemId = 1L;
-        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId);
+        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId).block();
+        assertThat(existing, notNullValue());
         int initialCount = existing.getCount();
         assertThat(initialCount, greaterThan(0));
 
         // when
-        mockMvc.perform(post("/cart/items")
-                        .param("id", String.valueOf(itemId))
-                        .param("action", ActionTypeDto.MINUS.name()))
-                .andExpect(status().isOk())
-                .andExpect(view().name("cart"))
-                .andExpect(model().attributeExists("items"))
-                .andExpect(model().attributeExists("total"));
+        webTestClient.post().uri(uriBuilder -> uriBuilder
+                        .path("/cart/items")
+                        .queryParam("id", itemId)
+                        .queryParam("action", ActionTypeDto.MINUS.name())
+                        .build())
+                .exchange()
+                .expectStatus().isOk();
 
         // then
-        CartItem updated = cartItemRepository.findByCartIdAndItemId(1L, itemId);
-        assertThat(updated.getCount(), equalTo(initialCount - 1));
+        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
+                .assertNext(updated -> {
+                    assertThat(updated.getCount(), equalTo(initialCount - 1));
+                })
+                .verifyComplete();
     }
 
     @Test
-    void actOnItems_removeAll_shouldDeleteCartItem() throws Exception {
+    void actOnItems_removeAll_shouldDeleteCartItem() {
         // given
         long itemId = 2L;
-        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId);
+        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId).block();
         assertThat(existing, notNullValue());
 
         // when
-        mockMvc.perform(post("/cart/items")
-                        .param("id", String.valueOf(itemId))
-                        .param("action", ActionTypeDto.DELETE.name()))
-                .andExpect(status().isOk())
-                .andExpect(view().name("cart"));
+        webTestClient.post().uri(uriBuilder -> uriBuilder
+                        .path("/cart/items")
+                        .queryParam("id", itemId)
+                        .queryParam("action", ActionTypeDto.DELETE.name())
+                        .build())
+                .exchange()
+                .expectStatus().isOk();
 
         // then
-        CartItem deleted = cartItemRepository.findByCartIdAndItemId(1L, itemId);
-        assertThat(deleted, nullValue());
+        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
+                .verifyComplete();
     }
 }

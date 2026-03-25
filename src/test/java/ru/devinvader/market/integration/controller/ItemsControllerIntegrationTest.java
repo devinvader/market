@@ -10,8 +10,6 @@ import org.springframework.web.reactive.function.BodyInserters;
 import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.CartItem;
 import ru.devinvader.market.repository.CartItemRepository;
-import ru.devinvader.market.repository.CartRepository;
-import ru.devinvader.market.repository.OrderRepository;
 import ru.devinvader.market.web.dto.ActionTypeDto;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -24,12 +22,6 @@ class ItemsControllerIntegrationTest extends IntegrationBaseTest {
 
     @Autowired
     private CartItemRepository cartItemRepository;
-
-    @Autowired
-    private CartRepository cartRepository;
-
-    @Autowired
-    private OrderRepository orderRepository;
 
     @Test
     void getItems_shouldReturnItemsView() {
