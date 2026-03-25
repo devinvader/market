@@ -8,20 +8,17 @@
     <!-- Добавление тестовых товаров (без img_path) -->
     <changeSet id="001-insert-test-items" author="market">
         <insert tableName="items">
-            <column name="id" value="1"/>
             <column name="title" value="Товар 1"/>
             <column name="description" value="Описание товара 1"/>
             <column name="price" value="100"/>
             <!-- image_id пока NULL, заполним позже -->
         </insert>
         <insert tableName="items">
-            <column name="id" value="2"/>
             <column name="title" value="Товар 2"/>
             <column name="description" value="Описание товара 2"/>
             <column name="price" value="200"/>
         </insert>
         <insert tableName="items">
-            <column name="id" value="3"/>
             <column name="title" value="Товар 3"/>
             <column name="description" value="Описание товара 3"/>
             <column name="price" value="300"/>
