@@ -34,7 +34,9 @@ public class CartService {
 
     public Flux<ItemDto> getCartItems() {
         Flux<CartItem> cartItems = getUserCart()
-                .flatMapMany(cart -> cartItemRepository.findByCartId(cart.getId()));
+                .flatMapMany(cart -> cartItemRepository.findByCartId(cart.getId()))
+                .cache();
+        // cache - чтобы два раза не вызывалось. Костыльненько, но если делать по-другому - то читаемость плохая
         Flux<Long> cartItemsId = cartItems.map(CartItem::getItemId);
         Flux<Item> items = itemRepository.findAllById(cartItemsId)
                 // чтобы запросить сразу всё и т.к. из ReactiveCrudRepository#findAllById:
