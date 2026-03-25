@@ -1,16 +1,13 @@
 package ru.devinvader.market.integration.controller;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.WebApplicationContext;
-import ru.devinvader.market.TestcontainersConfiguration;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.reactive.function.BodyInserters;
+import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.CartItem;
 import ru.devinvader.market.repository.CartItemRepository;
 import ru.devinvader.market.repository.CartRepository;
@@ -19,21 +16,11 @@ import ru.devinvader.market.web.dto.ActionTypeDto;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
-@TestPropertySource(properties = {
-    "spring.liquibase.change-log=classpath:/db/changelog/db.changelog-test-data.xml"
-})
-class ItemsControllerIntegrationTest {
+class ItemsControllerIntegrationTest extends IntegrationBaseTest {
 
     @Autowired
-    private WebApplicationContext webApplicationContext;
-
-    private MockMvc mockMvc;
+    private WebTestClient webTestClient;
 
     @Autowired
     private CartItemRepository cartItemRepository;
@@ -44,73 +31,87 @@ class ItemsControllerIntegrationTest {
     @Autowired
     private OrderRepository orderRepository;
 
-    @BeforeEach
-    void setUp() {
-        this.mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    @Test
+    void getItems_shouldReturnItemsView() {
+        webTestClient.get().uri("/items")
+                .exchange()
+                .expectStatus().isOk();
     }
 
     @Test
-    void getItems_shouldReturnItemsView() throws Exception {
-        mockMvc.perform(get("/items"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("items"))
-                .andExpect(model().attributeExists("items"))
-                .andExpect(model().attributeExists("paging"));
-    }
-
-    @Test
-    void actOnItems_addToCart_shouldIncreaseCartItemCount() throws Exception {
+    void actOnItems_addToCart_shouldIncreaseCartItemCount() {
         // given
         long itemId = 1L;
-        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId);
-        int initialCount = existing != null ? existing.getCount() : 0;
+        Integer initialCount = cartItemRepository.findByCartIdAndItemId(1L, itemId)
+                .map(CartItem::getCount)
+                .blockOptional()
+                .orElse(0);
 
         // when
-        mockMvc.perform(post("/items")
-                        .param("id", String.valueOf(itemId))
-                        .param("action", ActionTypeDto.PLUS.name()))
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("id", String.valueOf(itemId));
+        formData.add("action", ActionTypeDto.PLUS.name());
+
+        webTestClient.post().uri("/items")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(BodyInserters.fromFormData(formData))
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().value("Location", location -> assertThat(location, startsWith("/items")));
+
         // then
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/items"));
-
-        CartItem updated = cartItemRepository.findByCartIdAndItemId(1L, itemId);
-        assertThat(updated, notNullValue());
-        assertThat(updated.getCount(), equalTo(initialCount + 1));
+        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
+                .assertNext(updated -> {
+                    assertThat(updated, notNullValue());
+                    assertThat(updated.getCount(), equalTo(initialCount + 1));
+                })
+                .verifyComplete();
     }
 
     @Test
-    void getItem_shouldReturnItemView() throws Exception {
-        mockMvc.perform(get("/items/1"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("item"))
-                .andExpect(model().attributeExists("item"));
+    void getItem_shouldReturnItemView() {
+        webTestClient.get().uri("/items/1")
+                .exchange()
+                .expectStatus().isOk();
     }
 
     @Test
-    void actOnItem_removeFromCart_shouldDecreaseCartItemCount() throws Exception {
+    void actOnItem_removeFromCart_shouldDecreaseCartItemCount() {
         // given
         long itemId = 1L;
-        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId);
+        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId).block();
+        assertThat(existing, notNullValue());
         int initialCount = existing.getCount();
         assertThat(initialCount, greaterThan(0));
 
         // when
-        mockMvc.perform(post("/items/{id}", itemId)
-                        .param("action", ActionTypeDto.MINUS.name()))
-        // then
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/items/" + itemId));
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("action", ActionTypeDto.MINUS.name());
 
-        CartItem updated = cartItemRepository.findByCartIdAndItemId(1L, itemId);
-        assertThat(updated.getCount(), equalTo(initialCount - 1));
+        webTestClient.post().uri("/items/{id}", itemId)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(BodyInserters.fromFormData(formData))
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().value("Location", location -> assertThat(location, is("/items/" + itemId)));
+
+        // then
+        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
+                .assertNext(updated -> {
+                    assertThat(updated.getCount(), equalTo(initialCount - 1));
+                })
+                .verifyComplete();
     }
 
     @Test
-    void buyItems_shouldCreateOrderAndRedirect() throws Exception {
+    void buyItems_shouldCreateOrderAndRedirect() {
         // when
-        mockMvc.perform(post("/buy"))
-        // then
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name(containsString("/orders/")));
+        webTestClient.post().uri("/buy")
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().value("Location", location -> {
+                    assertThat(location, startsWith("/orders/"));
+                    assertThat(location, containsString("?newOrder=true"));
+                });
     }
 }

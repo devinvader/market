@@ -1,93 +1,82 @@
 package ru.devinvader.market.integration.controller;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.WebApplicationContext;
-import ru.devinvader.market.TestcontainersConfiguration;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.reactive.function.BodyInserters;
+import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.Item;
 import ru.devinvader.market.repository.ItemRepository;
 
-import java.util.List;
-import java.util.Optional;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-@Transactional
-class AdminControllerIntegrationTest {
+class AdminControllerIntegrationTest extends IntegrationBaseTest {
 
     @Autowired
-    private WebApplicationContext webApplicationContext;
-
-    private MockMvc mockMvc;
+    private WebTestClient webTestClient;
 
     @Autowired
     private ItemRepository itemRepository;
 
-    @BeforeEach
-    void setUp() {
-        this.mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    @Test
+    void getAdminPage_shouldReturnAdminViewWithItems() {
+        webTestClient.get().uri("/admin")
+                .exchange()
+                .expectStatus().isOk();
     }
 
     @Test
-    void getAdminPage_shouldReturnAdminViewWithItems() throws Exception {
-        // when & then
-        mockMvc.perform(get("/admin"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("admin"))
-                .andExpect(model().attributeExists("items"))
-                .andExpect(model().attribute("search", ""))
-                .andExpect(model().attribute("sort", "NO"));
+    void showAddItemForm_shouldReturnAddItemView() {
+        webTestClient.get().uri("/admin/items/new")
+                .exchange()
+                .expectStatus().isOk();
     }
 
     @Test
-    void showAddItemForm_shouldReturnAddItemView() throws Exception {
-        mockMvc.perform(get("/admin/items/new"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("add-item"))
-                .andExpect(model().attributeExists("item"));
-    }
-
-    @Test
-    void addItem_shouldSaveItemAndRedirect() throws Exception {
+    void addItem_shouldSaveItemAndRedirect() {
         // given
         String title = "New Test Item";
         String description = "Test Description";
         Long price = 5000L;
-        long initialCount = itemRepository.count();
+
+        long initialCount = itemRepository.count().block();
 
         // when
-        mockMvc.perform(post("/admin/items")
-                        .param("title", title)
-                        .param("description", description)
-                        .param("price", price.toString()))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/admin"));
+        LinkedMultiValueMap<String, String> multipartData = new LinkedMultiValueMap<>();
+        multipartData.add("title", title);
+        multipartData.add("description", description);
+        multipartData.add("price", price.toString());
+
+        webTestClient.post().uri("/admin/items")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(multipartData))
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/admin");
 
         // then
-        assertThat(itemRepository.count(), equalTo(initialCount + 1));
-        List<Item> items = itemRepository.findAll();
-        Optional<Item> savedItem = items.stream()
-                .filter(item -> title.equals(item.getTitle()))
-                .findFirst();
-        assertThat(savedItem.isPresent(), is(true));
-        assertThat(savedItem.get().getDescription(), equalTo(description));
-        assertThat(savedItem.get().getPrice(), equalTo(price));
+        StepVerifier.create(itemRepository.count())
+                .assertNext(finalCount -> assertThat(finalCount, equalTo(initialCount + 1)))
+                .verifyComplete();
+
+        StepVerifier.create(itemRepository.findAll()
+                        .filter(item -> title.equals(item.getTitle()))
+                        .collectList())
+                .assertNext(items -> {
+                    assertThat(items.size(), is(1));
+                    Item savedItem = items.get(0);
+                    assertThat(savedItem.getDescription(), equalTo(description));
+                    assertThat(savedItem.getPrice(), equalTo(price));
+                })
+                .verifyComplete();
     }
 
     @Test
-    void addItemWithImage_shouldSaveItemAndImage() throws Exception {
+    void addItemWithImage_shouldSaveItemAndImage() {
         // given
         String title = "Item with Image";
         String description = "Desc";
@@ -100,86 +89,100 @@ class AdminControllerIntegrationTest {
         );
 
         // when
-        mockMvc.perform(multipart("/admin/items")
-                        .file(imageFile)
-                        .param("title", title)
-                        .param("description", description)
-                        .param("price", Long.toString(price)))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/admin"));
+        LinkedMultiValueMap<String, Object> multipartData = new LinkedMultiValueMap<>();
+        multipartData.add("imageFile", imageFile.getResource());
+        multipartData.add("title", title);
+        multipartData.add("description", description);
+        multipartData.add("price", String.valueOf(price));
+
+        webTestClient.post().uri("/admin/items")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(multipartData))
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/admin");
 
         // then
-        Optional<Item> savedItem = itemRepository.findAll().stream()
-                .filter(item -> title.equals(item.getTitle()))
-                .findFirst();
-        assertThat(savedItem.isPresent(), is(true));
+        StepVerifier.create(itemRepository.findAll()
+                        .filter(item -> title.equals(item.getTitle()))
+                        .collectList())
+                .assertNext(items -> assertThat(items.isEmpty(), is(false)))
+                .verifyComplete();
     }
 
     @Test
-    void showEditItemForm_shouldReturnEditItemView() throws Exception {
+    void showEditItemForm_shouldReturnEditItemView() {
         // given
         Item item = new Item();
         item.setTitle("Test Item");
         item.setDescription("Test Description");
         item.setPrice(1000L);
-        Item saved = itemRepository.save(item);
-        Long itemId = saved.getId();
+
+        Item saved = itemRepository.save(item).block();
 
         // when & then
-        mockMvc.perform(get("/admin/items/{id}/edit", itemId))
-                .andExpect(status().isOk())
-                .andExpect(view().name("edit-item"))
-                .andExpect(model().attributeExists("item"));
+        webTestClient.get().uri("/admin/items/{id}/edit", saved.getId())
+                .exchange()
+                .expectStatus().isOk();
     }
 
     @Test
-    void updateItem_shouldUpdateItemAndRedirect() throws Exception {
+    void updateItem_shouldUpdateItemAndRedirect() {
         // given
         Item item = new Item();
         item.setTitle("Original Title");
         item.setDescription("Original Description");
         item.setPrice(1000L);
-        Item saved = itemRepository.save(item);
-        Long itemId = saved.getId();
+
+        Item saved = itemRepository.save(item).block();
 
         String newTitle = "Updated Title";
         String newDescription = "Updated Description";
         Long newPrice = 9999L;
 
         // when
-        mockMvc.perform(post("/admin/items/{id}", itemId)
-                        .param("title", newTitle)
-                        .param("description", newDescription)
-                        .param("price", newPrice.toString()))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/admin"));
+        LinkedMultiValueMap<String, String> multipartData = new LinkedMultiValueMap<>();
+        multipartData.add("title", newTitle);
+        multipartData.add("description", newDescription);
+        multipartData.add("price", newPrice.toString());
+        // поле imageFile не добавляем
+
+        webTestClient.post().uri("/admin/items/{id}", saved.getId())
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(multipartData))
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/admin");
 
         // then
-        Item updatedItem = itemRepository.findById(itemId).orElseThrow();
-        assertThat(updatedItem.getTitle(), equalTo(newTitle));
-        assertThat(updatedItem.getDescription(), equalTo(newDescription));
-        assertThat(updatedItem.getPrice(), equalTo(newPrice));
+        StepVerifier.create(itemRepository.findById(saved.getId()))
+                .assertNext(updated -> {
+                    assertThat(updated.getTitle(), equalTo(newTitle));
+                    assertThat(updated.getDescription(), equalTo(newDescription));
+                    assertThat(updated.getPrice(), equalTo(newPrice));
+                })
+                .verifyComplete();
     }
 
     @Test
-    void deleteItem_shouldDeleteItemAndRedirect() throws Exception {
+    void deleteItem_shouldDeleteItemAndRedirect() {
         // given
         Item item = new Item();
         item.setTitle("Item to delete");
         item.setDescription("Desc");
         item.setPrice(500L);
-        Item saved = itemRepository.save(item);
-        Long itemId = saved.getId();
-        boolean existsBefore = itemRepository.existsById(itemId);
-        assertThat(existsBefore, is(true));
+
+        Item saved = itemRepository.save(item).block();
 
         // when
-        mockMvc.perform(post("/admin/items/{id}/delete", itemId))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(view().name("redirect:/admin"));
+        webTestClient.post().uri("/admin/items/{id}/delete", saved.getId())
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/admin");
 
         // then
-        boolean existsAfter = itemRepository.existsById(itemId);
-        assertThat(existsAfter, is(false));
+        StepVerifier.create(itemRepository.existsById(saved.getId()))
+                .assertNext(exists -> assertThat(exists, is(false)))
+                .verifyComplete();
     }
 }
