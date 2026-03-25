@@ -2,15 +2,15 @@
 
 ## Преамбула
 
-Это backend-приложение для интернет-магазина, реализованное на Java с использованием Spring Framework.
+Это backend-приложение для интернет-магазина, реализованное на Java с использованием Spring Framework и реактивного стэка.
 В приложении есть UI из шаблонов, веб-интерфейс для управления товарами, корзиной, заказами и изображениями, админ-панель.
 
 ## Технологический стек
 
 - Java 21
 - Spring Boot 4.0.3
-  - Web MVC
-  - Data JPA
+  - WebFlux
+  - Data R2DBC
   - Liquibase
 - PostgreSQL
 - Thymeleaf
@@ -142,13 +142,18 @@ java -jar target/market-0.0.1-SNAPSHOT.jar
 
 ```yaml
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/market
-    username: postgres
-    password: postgres
+  application:
+    name: market
+  r2dbc:
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/market}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   liquibase:
-    change-log: classpath:db/changelog/db.changelog-master.xml
     enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    url: ${SPRING_LIQUIBASE_URL:jdbc:postgresql://localhost:5432/market}
+    user: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
 ```
 
 В Docker-окружении параметры передаются через переменные среды (см. `docker-compose.yml`).
@@ -158,7 +163,7 @@ spring:
 Для запуска тестов:
 
 ```bash
-mvn test
+mvn clean test
 ```
 
 Интеграционные тесты используют Testcontainers для поднятия PostgreSQL в контейнере.
