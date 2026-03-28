@@ -74,11 +74,17 @@ public class OrderService {
     }
 
     private Mono<Long> calculateTotalSum(List<CartItem> cartItems) {
-        return Flux.fromIterable(cartItems)
-                .flatMap(cartItem -> itemRepository.findById(cartItem.getItemId())
-                        .map(item -> item.getPrice() * cartItem.getCount())
-                )
-                .reduce(0L, Long::sum);
+        List<Long> itemIds = cartItems.stream()
+                .map(CartItem::getItemId)
+                .collect(Collectors.toList());
+
+        return itemRepository.findAllById(itemIds)
+                .collectMap(Item::getId, Item::getPrice)
+                .map(priceMap -> cartItems.stream()
+                        .filter(cartItem -> priceMap.containsKey(cartItem.getItemId()))
+                        .mapToLong(cartItem -> priceMap.get(cartItem.getItemId()) * cartItem.getCount())
+                        .sum()
+                );
     }
 
     private Mono<Order> createOrderAndItems(List<CartItem> cartItems, Long totalSum) {
