@@ -18,6 +18,7 @@ import ru.devinvader.market.web.dto.ItemDto;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -33,23 +34,22 @@ public class CartService {
     private final long DEFAUL_CART_ID = 1L;
 
     public Flux<ItemDto> getCartItems() {
-        Flux<CartItem> cartItems = getUserCart()
+        return getUserCart()
                 .flatMapMany(cart -> cartItemRepository.findByCartId(cart.getId()))
-                .cache();
-        // cache - чтобы два раза не вызывалось. Костыльненько, но если делать по-другому - то читаемость плохая
-        Flux<Long> cartItemsId = cartItems.map(CartItem::getItemId);
-        Flux<Item> items = itemRepository.findAllById(cartItemsId)
-                // чтобы запросить сразу всё и т.к. из ReactiveCrudRepository#findAllById:
-                // "Note that the order of elements in the result is not guaranteed."
-                .collectMap(Item::getId)
-                .flatMapMany(map -> cartItemsId.map(map::get));
-
-        return Flux.zip(cartItems, items)
-                .map(tuple -> itemMapper.toDto(
-                        tuple.getT2(),
-                        tuple.getT1().getCount()));
+                .collectList()
+                .flatMapMany(cartItems -> {
+                    List<Long> itemIds = cartItems.stream()
+                            .map(CartItem::getItemId)
+                            .collect(Collectors.toList());
+                    return itemRepository.findAllById(itemIds)
+                            .collectMap(Item::getId)
+                            .flatMapMany(itemMap -> Flux.fromIterable(cartItems)
+                                    .map(cartItem -> {
+                                        Item item = itemMap.get(cartItem.getItemId());
+                                        return itemMapper.toDto(item, cartItem.getCount());
+                                    }));
+                });
     }
-
     public Mono<Long> getTotal() {
         return getCartItems()
                 .map(item -> item.price() * item.count())
