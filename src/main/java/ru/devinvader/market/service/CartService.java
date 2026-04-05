@@ -31,7 +31,7 @@ public class CartService {
     private final ItemMapper itemMapper;
 
     // т.к. у нас пока нет ни пользователей, ни сессии, используем один cartId
-    private final long DEFAUL_CART_ID = 1L;
+    private static final long DEFAULT_CART_ID = 1L;
 
     public Flux<ItemDto> getCartItems() {
         return getUserCart()
@@ -99,7 +99,7 @@ public class CartService {
     }
 
     public Mono<Cart> getUserCart() {
-        return cartRepository.findById(DEFAUL_CART_ID)
+        return cartRepository.findById(DEFAULT_CART_ID)
                 .switchIfEmpty(Mono.defer(() -> {
                     Cart newCart = new Cart();
                     return cartRepository.save(newCart);

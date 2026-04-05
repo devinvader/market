@@ -34,10 +34,10 @@ class ItemsControllerIntegrationTest extends IntegrationBaseTest {
     void actOnItems_addToCart_shouldIncreaseCartItemCount() {
         // given
         long itemId = 1L;
-        Integer initialCount = cartItemRepository.findByCartIdAndItemId(1L, itemId)
-                .map(CartItem::getCount)
-                .blockOptional()
-                .orElse(0);
+        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId)
+                .defaultIfEmpty(new CartItem())
+                .block();
+        Integer initialCount = existing.getCount() != null ? existing.getCount() : 0;
 
         // when
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -48,10 +48,10 @@ class ItemsControllerIntegrationTest extends IntegrationBaseTest {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters.fromFormData(formData))
                 .exchange()
+        // then
                 .expectStatus().is3xxRedirection()
                 .expectHeader().value("Location", location -> assertThat(location, startsWith("/items")));
 
-        // then
         StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
                 .assertNext(updated -> {
                     assertThat(updated, notNullValue());
@@ -84,14 +84,13 @@ class ItemsControllerIntegrationTest extends IntegrationBaseTest {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters.fromFormData(formData))
                 .exchange()
+        // then
                 .expectStatus().is3xxRedirection()
                 .expectHeader().value("Location", location -> assertThat(location, is("/items/" + itemId)));
 
-        // then
         StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
-                .assertNext(updated -> {
-                    assertThat(updated.getCount(), equalTo(initialCount - 1));
-                })
+                .assertNext(updated ->
+                        assertThat(updated.getCount(), equalTo(initialCount - 1)))
                 .verifyComplete();
     }
 
@@ -100,6 +99,7 @@ class ItemsControllerIntegrationTest extends IntegrationBaseTest {
         // when
         webTestClient.post().uri("/buy")
                 .exchange()
+        // then
                 .expectStatus().is3xxRedirection()
                 .expectHeader().value("Location", location -> {
                     assertThat(location, startsWith("/orders/"));

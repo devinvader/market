@@ -31,7 +31,8 @@ class CartControllerIntegrationTest extends IntegrationBaseTest {
         // given
         long itemId = 1L;
         CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId).block();
-        int initialCount = existing != null ? existing.getCount() : 0;
+        assertThat(existing, notNullValue());
+        int initialCount = existing.getCount();
 
         // when
         webTestClient.post().uri(uriBuilder -> uriBuilder
@@ -71,9 +72,8 @@ class CartControllerIntegrationTest extends IntegrationBaseTest {
 
         // then
         StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
-                .assertNext(updated -> {
-                    assertThat(updated.getCount(), equalTo(initialCount - 1));
-                })
+                .assertNext(updated ->
+                        assertThat(updated.getCount(), equalTo(initialCount - 1)))
                 .verifyComplete();
     }
 
@@ -95,6 +95,7 @@ class CartControllerIntegrationTest extends IntegrationBaseTest {
 
         // then
         StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
+                .expectNextCount(0)
                 .verifyComplete();
     }
 }

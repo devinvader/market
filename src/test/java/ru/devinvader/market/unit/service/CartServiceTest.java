@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -96,7 +95,7 @@ public class CartServiceTest {
         cart.setId(DEFAULT_CART_ID);
         when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
         when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.empty());
-        when(itemRepository.findAllById(any(Publisher.class))).thenReturn(Flux.empty());
+        when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.empty());
 
         // when
         Flux<ItemDto> result = cartService.getCartItems();
@@ -107,7 +106,7 @@ public class CartServiceTest {
                 .verifyComplete();
         verify(cartRepository).findById(DEFAULT_CART_ID);
         verify(cartItemRepository).findByCartId(DEFAULT_CART_ID);
-        verify(itemRepository, never()).findAllById(anyIterable());
+        verify(itemRepository).findAllById(anyIterable());
     }
 
     @Test
@@ -124,7 +123,7 @@ public class CartServiceTest {
 
         when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
         when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.just(cartItem1, cartItem2));
-        when(itemRepository.findAllById(any(Publisher.class))).thenReturn(Flux.just(item1, item2));
+        when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item1, item2));
 
         // when
         Flux<ItemDto> result = cartService.getCartItems();
@@ -136,7 +135,7 @@ public class CartServiceTest {
                 .verifyComplete();
         verify(cartRepository).findById(DEFAULT_CART_ID);
         verify(cartItemRepository).findByCartId(DEFAULT_CART_ID);
-        verify(itemRepository).findAllById(any(Publisher.class));
+        verify(itemRepository).findAllById(anyIterable());
     }
 
     @Test
@@ -146,7 +145,7 @@ public class CartServiceTest {
         cart.setId(DEFAULT_CART_ID);
         when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
         when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.empty());
-        when(itemRepository.findAllById(any(Publisher.class))).thenReturn(Flux.empty());
+        when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.empty());
 
         // when
         Mono<Long> result = cartService.getTotal();
@@ -169,7 +168,7 @@ public class CartServiceTest {
 
         when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
         when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.just(cartItem1, cartItem2));
-        when(itemRepository.findAllById(any(Publisher.class))).thenReturn(Flux.just(item1, item2));
+        when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item1, item2));
 
         // when
         Mono<Long> result = cartService.getTotal();
@@ -244,7 +243,7 @@ public class CartServiceTest {
                 .thenReturn(Mono.empty());
         when(cartItemRepository.save(any(CartItem.class))).thenReturn(Mono.just(savedCartItem));
         when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.just(savedCartItem));
-        when(itemRepository.findAllById(any(Publisher.class))).thenReturn(Flux.just(item));
+        when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item));
 
         // when
         Flux<ItemDto> result = cartService.actOnCartItems(10L, ActionTypeDto.PLUS);
@@ -275,7 +274,7 @@ public class CartServiceTest {
                 .thenReturn(Mono.just(existing));
         when(cartItemRepository.save(existing)).thenReturn(Mono.just(existing));
         when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.just(existing));
-        when(itemRepository.findAllById(any(Publisher.class))).thenReturn(Flux.just(item));
+        when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item));
 
         // when
         Flux<ItemDto> result = cartService.actOnCartItems(10L, ActionTypeDto.PLUS);
@@ -303,7 +302,7 @@ public class CartServiceTest {
                 .thenReturn(Mono.just(existing));
         when(cartItemRepository.save(existing)).thenReturn(Mono.just(existing));
         when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.just(existing));
-        when(itemRepository.findAllById(any(Publisher.class))).thenReturn(Flux.just(item));
+        when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item));
 
         // when
         Flux<ItemDto> result = cartService.actOnCartItems(10L, ActionTypeDto.MINUS);
@@ -330,7 +329,7 @@ public class CartServiceTest {
                 .thenReturn(Mono.just(existing));
         when(cartItemRepository.delete(existing)).thenReturn(Mono.empty());
         when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.empty());
-        when(itemRepository.findAllById(any(Publisher.class))).thenReturn(Flux.just(item));
+        when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item));
 
         // when
         Flux<ItemDto> result = cartService.actOnCartItems(10L, ActionTypeDto.MINUS);
@@ -353,7 +352,7 @@ public class CartServiceTest {
         when(cartItemRepository.findByCartIdAndItemId(DEFAULT_CART_ID, 10L))
                 .thenReturn(Mono.empty());
         when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.empty());
-        when(itemRepository.findAllById(any(Publisher.class))).thenReturn(Flux.just(item));
+        when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item));
         when(cartItemRepository.delete(any(CartItem.class))).thenReturn(Mono.empty());
 
         // when

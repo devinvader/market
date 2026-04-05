@@ -185,6 +185,7 @@ public class OrderServiceTest {
         when(cartItemRepository.findByCartId(cartId)).thenReturn(Flux.just(cartItem1, cartItem2));
         when(itemRepository.findById(10L)).thenReturn(Mono.just(item1));
         when(itemRepository.findById(20L)).thenReturn(Mono.just(item2));
+        when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item1, item2));
         when(orderRepository.save(any(Order.class))).thenReturn(Mono.just(savedOrder));
         when(orderItemRepository.saveAll(anyList())).thenReturn(Flux.just(orderItem1, orderItem2));
         when(cartItemRepository.deleteAll(anyList())).thenReturn(Mono.empty());
@@ -202,7 +203,7 @@ public class OrderServiceTest {
                 .verifyComplete();
 
         verify(cartItemRepository).findByCartId(cartId);
-        verify(itemRepository, times(4)).findById(anyLong());
+        verify(itemRepository, times(2)).findById(anyLong());
         verify(orderRepository).save(orderCaptor.capture());
         Order capturedOrder = orderCaptor.getValue();
         assertEquals(5000L, capturedOrder.getTotalSum());

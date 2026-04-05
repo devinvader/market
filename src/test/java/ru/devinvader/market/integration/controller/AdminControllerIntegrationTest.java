@@ -45,12 +45,12 @@ class AdminControllerIntegrationTest extends IntegrationBaseTest {
 
         long initialCount = itemRepository.count().block();
 
-        // when
         LinkedMultiValueMap<String, String> multipartData = new LinkedMultiValueMap<>();
         multipartData.add("title", title);
         multipartData.add("description", description);
         multipartData.add("price", price.toString());
 
+        // when
         webTestClient.post().uri("/admin/items")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(multipartData))
@@ -88,13 +88,13 @@ class AdminControllerIntegrationTest extends IntegrationBaseTest {
                 "fake image content".getBytes()
         );
 
-        // when
         LinkedMultiValueMap<String, Object> multipartData = new LinkedMultiValueMap<>();
         multipartData.add("imageFile", imageFile.getResource());
         multipartData.add("title", title);
         multipartData.add("description", description);
         multipartData.add("price", String.valueOf(price));
 
+        // when
         webTestClient.post().uri("/admin/items")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(multipartData))
@@ -120,10 +120,19 @@ class AdminControllerIntegrationTest extends IntegrationBaseTest {
 
         Item saved = itemRepository.save(item).block();
 
-        // when & then
+        // when
         webTestClient.get().uri("/admin/items/{id}/edit", saved.getId())
                 .exchange()
+        // then
                 .expectStatus().isOk();
+
+        StepVerifier.create(itemRepository.findById(saved.getId()))
+                .assertNext(found -> {
+                    assertThat(found.getTitle(), equalTo(item.getTitle()));
+                    assertThat(found.getDescription(), equalTo(item.getDescription()));
+                    assertThat(found.getPrice(), equalTo(item.getPrice()));
+                })
+                .verifyComplete();
     }
 
     @Test
@@ -140,21 +149,19 @@ class AdminControllerIntegrationTest extends IntegrationBaseTest {
         String newDescription = "Updated Description";
         Long newPrice = 9999L;
 
-        // when
         LinkedMultiValueMap<String, String> multipartData = new LinkedMultiValueMap<>();
         multipartData.add("title", newTitle);
         multipartData.add("description", newDescription);
         multipartData.add("price", newPrice.toString());
-        // поле imageFile не добавляем
-
+        // when
         webTestClient.post().uri("/admin/items/{id}", saved.getId())
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(multipartData))
                 .exchange()
+        // then
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("/admin");
 
-        // then
         StepVerifier.create(itemRepository.findById(saved.getId()))
                 .assertNext(updated -> {
                     assertThat(updated.getTitle(), equalTo(newTitle));
@@ -173,14 +180,13 @@ class AdminControllerIntegrationTest extends IntegrationBaseTest {
         item.setPrice(500L);
 
         Item saved = itemRepository.save(item).block();
-
         // when
         webTestClient.post().uri("/admin/items/{id}/delete", saved.getId())
                 .exchange()
+        // then
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("/admin");
 
-        // then
         StepVerifier.create(itemRepository.existsById(saved.getId()))
                 .assertNext(exists -> assertThat(exists, is(false)))
                 .verifyComplete();
