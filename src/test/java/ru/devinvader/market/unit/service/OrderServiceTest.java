@@ -90,9 +90,8 @@ public class OrderServiceTest {
         Item item1 = new Item(100L, "Item 1", "Desc 1", 1000L, null);
         Item item2 = new Item(200L, "Item 2", "Desc 2", 2000L, null);
         Item item3 = new Item(300L, "Item 3", "Desc 3", 1500L, null);
-        when(itemRepository.findById(100L)).thenReturn(Mono.just(item1));
-        when(itemRepository.findById(200L)).thenReturn(Mono.just(item2));
-        when(itemRepository.findById(300L)).thenReturn(Mono.just(item3));
+        when(itemRepository.findAllById(List.of(100L, 200L))).thenReturn(Flux.just(item1, item2));
+        when(itemRepository.findAllById(List.of(300L))).thenReturn(Flux.just(item3));
         ItemDto dto1 = new ItemDto(100L, "Item 1", "Desc 1", 1000L, 2);
         ItemDto dto2 = new ItemDto(200L, "Item 2", "Desc 2", 2000L, 1);
         ItemDto dto3 = new ItemDto(300L, "Item 3", "Desc 3", 1500L, 3);
@@ -116,9 +115,8 @@ public class OrderServiceTest {
         verify(orderRepository).findAll();
         verify(orderItemRepository).findByOrderId(1L);
         verify(orderItemRepository).findByOrderId(2L);
-        verify(itemRepository, times(1)).findById(100L);
-        verify(itemRepository, times(1)).findById(200L);
-        verify(itemRepository, times(1)).findById(300L);
+        verify(itemRepository).findAllById(List.of(100L, 200L));
+        verify(itemRepository).findAllById(List.of(300L));
     }
 
     @Test
@@ -132,7 +130,7 @@ public class OrderServiceTest {
 
         when(orderRepository.findById(orderId)).thenReturn(Mono.just(order));
         when(orderItemRepository.findByOrderId(orderId)).thenReturn(Flux.just(orderItem));
-        when(itemRepository.findById(300L)).thenReturn(Mono.just(item));
+        when(itemRepository.findAllById(List.of(300L))).thenReturn(Flux.just(item));
 
         // when
         Mono<OrderDto> result = orderService.getOrCreateOrder(orderId, false);
@@ -147,7 +145,7 @@ public class OrderServiceTest {
 
         verify(orderRepository).findById(orderId);
         verify(orderItemRepository).findByOrderId(orderId);
-        verify(itemRepository).findById(300L);
+        verify(itemRepository).findAllById(anyIterable());
     }
 
     @Test
@@ -183,8 +181,6 @@ public class OrderServiceTest {
         ItemDto dto2 = new ItemDto(20L, "Item 2", "Desc 2", 2000L, 1);
 
         when(cartItemRepository.findByCartId(cartId)).thenReturn(Flux.just(cartItem1, cartItem2));
-        when(itemRepository.findById(10L)).thenReturn(Mono.just(item1));
-        when(itemRepository.findById(20L)).thenReturn(Mono.just(item2));
         when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item1, item2));
         when(orderRepository.save(any(Order.class))).thenReturn(Mono.just(savedOrder));
         when(orderItemRepository.saveAll(anyList())).thenReturn(Flux.just(orderItem1, orderItem2));
@@ -203,7 +199,7 @@ public class OrderServiceTest {
                 .verifyComplete();
 
         verify(cartItemRepository).findByCartId(cartId);
-        verify(itemRepository, times(2)).findById(anyLong());
+        verify(itemRepository, times(2)).findAllById(anyIterable());
         verify(orderRepository).save(orderCaptor.capture());
         Order capturedOrder = orderCaptor.getValue();
         assertEquals(5000L, capturedOrder.getTotalSum());

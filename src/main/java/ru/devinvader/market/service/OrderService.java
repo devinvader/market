@@ -106,17 +106,29 @@ public class OrderService {
     }
 
     private Mono<List<ItemDto>> toItemDtosFromOrderItems(List<OrderItem> orderItems) {
-        return Flux.fromIterable(orderItems)
-                .flatMap(orderItem -> itemRepository.findById(orderItem.getItemId())
-                        .map(item -> itemMapper.toDto(item, orderItem.getCount()))
+        List<Long> itemIds = orderItems.stream()
+                .map(OrderItem::getItemId)
+                .toList();
+
+        return itemRepository.findAllById(itemIds)
+                .collectMap(Item::getId)
+                .flatMapMany(itemMap -> Flux.fromIterable(orderItems)
+                        .filter(orderItem -> itemMap.containsKey(orderItem.getItemId()))
+                        .map(orderItem -> itemMapper.toDto(itemMap.get(orderItem.getItemId()), orderItem.getCount()))
                 )
                 .collectList();
     }
 
     private Mono<List<ItemDto>> toItemDtosFromCartItems(List<CartItem> cartItems) {
-        return Flux.fromIterable(cartItems)
-                .flatMap(cartItem -> itemRepository.findById(cartItem.getItemId())
-                        .map(item -> itemMapper.toDto(item, cartItem.getCount()))
+        List<Long> itemIds = cartItems.stream()
+                .map(CartItem::getItemId)
+                .toList();
+
+        return itemRepository.findAllById(itemIds)
+                .collectMap(Item::getId)
+                .flatMapMany(itemMap -> Flux.fromIterable(cartItems)
+                        .filter(cartItem -> itemMap.containsKey(cartItem.getItemId()))
+                        .map(cartItem -> itemMapper.toDto(itemMap.get(cartItem.getItemId()), cartItem.getCount()))
                 )
                 .collectList();
     }
