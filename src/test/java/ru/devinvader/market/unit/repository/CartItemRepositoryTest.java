@@ -2,15 +2,13 @@ package ru.devinvader.market.unit.repository;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.Cart;
 import ru.devinvader.market.domain.CartItem;
-import ru.devinvader.market.domain.CartItemId;
 import ru.devinvader.market.domain.Item;
 import ru.devinvader.market.repository.CartItemRepository;
 import ru.devinvader.market.repository.CartRepository;
 import ru.devinvader.market.repository.ItemRepository;
-
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,101 +26,83 @@ public class CartItemRepositoryTest extends BaseRepositoryTest {
     public void saveAndFindById_givenCartAndItem_whenSave_thenFindById() {
         // given
         Cart cart = new Cart();
-        Cart savedCart = cartRepository.save(cart);
+        Cart savedCart = cartRepository.save(cart).block();
 
         Item item = new Item();
         item.setTitle("Test Item");
         item.setPrice(100L);
-        Item savedItem = itemRepository.save(item);
+        Item savedItem = itemRepository.save(item).block();
 
-        CartItem cartItem = new CartItem();
-        cartItem.setCart(savedCart);
-        cartItem.setItem(savedItem);
-        cartItem.setCount(2);
+        CartItem cartItem = new CartItem(null, savedCart.getId(), savedItem.getId(), 2);
 
         // when
-        cartItemRepository.save(cartItem);
-        CartItemId cartItemId = new CartItemId(savedCart.getId(), savedItem.getId());
-        CartItem foundCartItem = cartItemRepository.findById(cartItemId).orElse(null);
+        cartItemRepository.save(cartItem).block();
 
         // then
-        assertThat(foundCartItem).isNotNull();
-        assertThat(foundCartItem.getCount()).isEqualTo(2);
+        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(cart.getId(), item.getId()))
+                .assertNext(found -> assertThat(found.getCount()).isEqualTo(2))
+                .verifyComplete();
     }
 
     @Test
-    public void findByCartId_givenCartWithItems_whenFind_thenReturnList() {
+    public void findByIdCartId_givenCartWithItems_whenFind_thenReturnFlux() {
         // given
         Cart cart = new Cart();
-        Cart savedCart = cartRepository.save(cart);
+        Cart savedCart = cartRepository.save(cart).block();
 
         Item item = new Item();
         item.setTitle("Test Item");
         item.setPrice(100L);
-        Item savedItem = itemRepository.save(item);
+        Item savedItem = itemRepository.save(item).block();
 
-        CartItem cartItem = new CartItem();
-        cartItem.setCart(savedCart);
-        cartItem.setItem(savedItem);
-        cartItem.setCount(2);
-        cartItemRepository.save(cartItem);
+        CartItem cartItem = new CartItem(null, savedCart.getId(), savedItem.getId(), 2);
+        cartItemRepository.save(cartItem).block();
 
-        // when
-        List<CartItem> cartItems = cartItemRepository.findByCartId(savedCart.getId());
-
-        // then
-        assertThat(cartItems).hasSize(1);
-        assertThat(cartItems.get(0).getCount()).isEqualTo(2);
+        // when & then
+        StepVerifier.create(cartItemRepository.findByCartId(savedCart.getId()))
+                .assertNext(found -> assertThat(found.getCount()).isEqualTo(2))
+                .verifyComplete();
     }
 
     @Test
-    public void findByCartIdAndItemId_givenCartItem_whenFind_thenReturnItem() {
+    public void findByCartIdAndItemId_givenCartItem_whenFind_thenReturnMono() {
         // given
         Cart cart = new Cart();
-        Cart savedCart = cartRepository.save(cart);
+        Cart savedCart = cartRepository.save(cart).block();
 
         Item item = new Item();
         item.setTitle("Test Item");
         item.setPrice(100L);
-        Item savedItem = itemRepository.save(item);
+        Item savedItem = itemRepository.save(item).block();
 
-        CartItem cartItem = new CartItem();
-        cartItem.setCart(savedCart);
-        cartItem.setItem(savedItem);
-        cartItem.setCount(2);
-        cartItemRepository.save(cartItem);
+        CartItem cartItem = new CartItem(null, savedCart.getId(), savedItem.getId(), 2);
+        cartItemRepository.save(cartItem).block();
 
-        // when
-        CartItem foundCartItem = cartItemRepository.findByCartIdAndItemId(savedCart.getId(), savedItem.getId());
-
-        // then
-        assertThat(foundCartItem).isNotNull();
-        assertThat(foundCartItem.getCount()).isEqualTo(2);
+        // when & then
+        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(savedCart.getId(), savedItem.getId()))
+                .assertNext(found -> assertThat(found.getCount()).isEqualTo(2))
+                .verifyComplete();
     }
 
     @Test
     public void delete_givenCartItem_whenDelete_thenNotFound() {
         // given
         Cart cart = new Cart();
-        Cart savedCart = cartRepository.save(cart);
+        Cart savedCart = cartRepository.save(cart).block();
 
         Item item = new Item();
         item.setTitle("Test Item");
         item.setPrice(100L);
-        Item savedItem = itemRepository.save(item);
+        Item savedItem = itemRepository.save(item).block();
 
-        CartItem cartItem = new CartItem();
-        cartItem.setCart(savedCart);
-        cartItem.setItem(savedItem);
-        cartItem.setCount(2);
-        cartItemRepository.save(cartItem);
+        CartItem cartItem = new CartItem(null, savedCart.getId(), savedItem.getId(), 2);
+        cartItemRepository.save(cartItem).block();
 
         // when
-        CartItemId cartItemId = new CartItemId(savedCart.getId(), savedItem.getId());
-        cartItemRepository.deleteById(cartItemId);
-        CartItem foundCartItem = cartItemRepository.findById(cartItemId).orElse(null);
+        cartItemRepository.deleteByCartId(savedCart.getId()).block();
 
         // then
-        assertThat(foundCartItem).isNull();
+        StepVerifier.create(cartItemRepository.findByCartId(savedCart.getId()))
+                .verifyComplete();
     }
 }

@@ -1,30 +1,27 @@
 package ru.devinvader.market.domain;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
+import org.springframework.data.relational.core.mapping.Column;
 import lombok.*;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "items")
+@Table("items")
 public class Item {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column("title")
     private String title;
 
-    @Column
+    @Column("description")
     private String description;
 
-    @Column(nullable = false)
+    @Column("price")
     private Long price;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "image_id")
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private Image image;
+    @Column("image_id")
+    private Long imageId;
 }

@@ -2,20 +2,29 @@ package ru.devinvader.market.unit.service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.multipart.FilePart;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.Image;
 import ru.devinvader.market.domain.Item;
 import ru.devinvader.market.repository.ImageRepository;
 import ru.devinvader.market.repository.ItemRepository;
 import ru.devinvader.market.service.ImageService;
 
-import java.io.IOException;
-import java.util.Optional;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,127 +39,171 @@ public class ImageServiceTest {
     @InjectMocks
     private ImageService imageService;
 
+    @Captor
+    private ArgumentCaptor<Image> imageCaptor;
+
     private final Long ITEM_ID = 1L;
     private final Long IMAGE_ID = 2L;
+    private final byte[] IMAGE_DATA = "image data".getBytes();
+    private final String CONTENT_TYPE = "image/jpeg";
 
     @Test
-    void saveImage_newItemAndNoExistingImage_createsAndReturnsImage() throws IOException {
+    void saveImage_itemNotFound_throwsError() {
         // given
-        Item item = new Item(ITEM_ID, "Test", "Desc", 1000L, null);
-        MultipartFile file = mock(MultipartFile.class);
-        byte[] fileData = "test data".getBytes();
-        String contentType = "image/jpeg";
-
-        when(itemRepository.findById(ITEM_ID)).thenReturn(Optional.of(item));
-        when(file.getBytes()).thenReturn(fileData);
-        when(file.getContentType()).thenReturn(contentType);
-        when(itemRepository.save(any(Item.class))).thenAnswer(inv -> {
-            Item itm = inv.getArgument(0);
-            itm.setImage(new Image(IMAGE_ID, fileData, contentType, itm));
-            return itm;
-        });
+        FilePart filePart = mock(FilePart.class);
+        when(itemRepository.findById(ITEM_ID)).thenReturn(Mono.empty());
 
         // when
-        Image result = imageService.saveImage(ITEM_ID, file);
+        Mono<Image> result = imageService.saveImage(ITEM_ID, filePart);
 
         // then
-        assertNotNull(result);
-        assertEquals(IMAGE_ID, result.getId());
-        assertArrayEquals(fileData, result.getData());
-        assertEquals(contentType, result.getContentType());
-        assertEquals(item, result.getItem());
-
-        verify(itemRepository).findById(ITEM_ID);
-    }
-
-    @Test
-    void saveImage_existingImage_updatesAndReturnsImage() throws IOException {
-        // given
-        MultipartFile file = mock(MultipartFile.class);
-        byte[] fileData = "new data".getBytes();
-        String contentType = "image/png";
-
-        Image existingImage = new Image(IMAGE_ID, "old data".getBytes(), "image/jpeg", null);
-        Item item = new Item(ITEM_ID, "Test", "Desc", 1000L, existingImage);
-        existingImage.setItem(item);
-        when(itemRepository.findById(ITEM_ID)).thenReturn(Optional.of(item));
-        when(file.getBytes()).thenReturn(fileData);
-        when(file.getContentType()).thenReturn(contentType);
-        when(imageRepository.save(existingImage)).thenReturn(existingImage);
-        // when
-        Image result = imageService.saveImage(ITEM_ID, file);
-
-        // then
-        assertSame(existingImage, result);
-        assertArrayEquals(fileData, existingImage.getData());
-        assertEquals(contentType, existingImage.getContentType());
-
-        verify(imageRepository).save(new Image(IMAGE_ID, existingImage.getData(), existingImage.getContentType(), item));
-    }
-
-    @Test
-    void saveImage_itemNotFound_throwsException() {
-        // given
-        MultipartFile file = mock(MultipartFile.class);
-        when(itemRepository.findById(ITEM_ID)).thenReturn(Optional.empty());
-
-        // when / then
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> imageService.saveImage(ITEM_ID, file));
-        assertEquals("Item not found", exception.getMessage());
+        StepVerifier.create(result)
+                .expectErrorMatches(e ->
+                        e instanceof RuntimeException && e.getMessage().equals("Item not found"))
+                .verify();
 
         verify(itemRepository).findById(ITEM_ID);
         verifyNoInteractions(imageRepository);
     }
 
     @Test
-    void getImageByItemId_existing_returnsImage() {
+    void saveImage_newItemWithoutImage_createsNewImageAndLinks() {
         // given
-        Image image = new Image(IMAGE_ID, new byte[0], "image/jpeg", new Item());
-        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(Optional.of(image));
+        Item item = new Item(ITEM_ID, "Item", "Desc", 1000L, null);
+        FilePart filePart = mock(FilePart.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.IMAGE_JPEG);
+        when(filePart.headers()).thenReturn(headers);
+
+        DataBuffer dataBuffer = new DefaultDataBufferFactory().wrap(IMAGE_DATA);
+        when(filePart.content()).thenReturn(Flux.just(dataBuffer));
+
+        when(itemRepository.findById(ITEM_ID)).thenReturn(Mono.just(item));
+        when(imageRepository.save(any(Image.class))).thenAnswer(inv -> {
+            Image img = inv.getArgument(0);
+            img.setId(IMAGE_ID);
+            return Mono.just(img);
+        });
+        when(itemRepository.save(any(Item.class))).thenReturn(Mono.just(item));
 
         // when
-        Image result = imageService.getImageByItemId(ITEM_ID);
+        Mono<Image> result = imageService.saveImage(ITEM_ID, filePart);
 
         // then
-        assertSame(image, result);
+        StepVerifier.create(result)
+                .assertNext(savedImage -> {
+                    assertNotNull(savedImage);
+                    assertEquals(IMAGE_ID, savedImage.getId());
+                    assertArrayEquals(IMAGE_DATA, savedImage.getData());
+                    assertEquals(CONTENT_TYPE, savedImage.getContentType());
+                })
+                .verifyComplete();
+
+        verify(imageRepository).save(imageCaptor.capture());
+        Image capturedImage = imageCaptor.getValue();
+        assertArrayEquals(IMAGE_DATA, capturedImage.getData());
+        assertEquals(CONTENT_TYPE, capturedImage.getContentType());
+
+        verify(itemRepository).save(item);
+        assertEquals(IMAGE_ID, item.getImageId());
+    }
+
+    @Test
+    void saveImage_existingItemWithImage_updatesImage() {
+        // given
+        Item item = new Item(ITEM_ID, "Item", "Desc", 1000L, IMAGE_ID);
+        Image existingImage = new Image(IMAGE_ID, "old".getBytes(), CONTENT_TYPE);
+        FilePart filePart = mock(FilePart.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.IMAGE_JPEG);
+        when(filePart.headers()).thenReturn(headers);
+
+        DataBuffer dataBuffer = new DefaultDataBufferFactory().wrap(IMAGE_DATA);
+        when(filePart.content()).thenReturn(Flux.just(dataBuffer));
+
+        when(itemRepository.findById(ITEM_ID)).thenReturn(Mono.just(item));
+        when(imageRepository.findById(IMAGE_ID)).thenReturn(Mono.just(existingImage));
+        when(imageRepository.save(any(Image.class))).thenReturn(Mono.just(existingImage));
+
+        // when
+        Mono<Image> result = imageService.saveImage(ITEM_ID, filePart);
+
+        // then
+        StepVerifier.create(result)
+                .assertNext(savedImage -> {
+                    assertSame(existingImage, savedImage);
+                    assertArrayEquals(IMAGE_DATA, existingImage.getData());
+                    assertEquals(CONTENT_TYPE, existingImage.getContentType());
+                })
+                .verifyComplete();
+
+        verify(imageRepository).findById(IMAGE_ID);
+        verify(imageRepository).save(existingImage);
+        verify(itemRepository, never()).save(any());
+    }
+
+    @Test
+    void getImageByItemId_existing_returnsImage() {
+        // given
+        Image image = new Image(IMAGE_ID, IMAGE_DATA, CONTENT_TYPE);
+        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(Mono.just(image));
+
+        // when
+        Mono<Image> result = imageService.getImageByItemId(ITEM_ID);
+
+        // then
+        StepVerifier.create(result)
+                .expectNext(image)
+                .verifyComplete();
+
         verify(imageRepository).findByItemId(ITEM_ID);
     }
 
     @Test
-    void getImageByItemId_notFound_returnsNull() {
+    void getImageByItemId_notFound_returnsEmptyMono() {
         // given
-        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(Optional.empty());
+        when(imageRepository.findByItemId(ITEM_ID)).thenReturn(Mono.empty());
 
         // when
-        Image result = imageService.getImageByItemId(ITEM_ID);
+        Mono<Image> result = imageService.getImageByItemId(ITEM_ID);
 
         // then
-        assertNull(result);
+        StepVerifier.create(result)
+                .verifyComplete();
+
         verify(imageRepository).findByItemId(ITEM_ID);
     }
 
     @Test
     void deleteImageByItemId_existing_deletesImage() {
         // given
-        when(imageRepository.findIdByItemId(ITEM_ID)).thenReturn(IMAGE_ID);
+        when(imageRepository.findImageIdByItemId(ITEM_ID)).thenReturn(Mono.just(IMAGE_ID));
+        when(imageRepository.deleteById(IMAGE_ID)).thenReturn(Mono.empty());
 
         // when
-        imageService.deleteImageByItemId(ITEM_ID);
+        Mono<Void> result = imageService.deleteImageByItemId(ITEM_ID);
 
         // then
+        StepVerifier.create(result)
+                .verifyComplete();
+
+        verify(imageRepository).findImageIdByItemId(ITEM_ID);
         verify(imageRepository).deleteById(IMAGE_ID);
     }
 
     @Test
-    void deleteImageByItemId_notFound_doesNothing() {
+    void deleteImageByItemId_notFound_completesWithoutError() {
         // given
-        when(imageRepository.findIdByItemId(ITEM_ID)).thenReturn(null);
+        when(imageRepository.findImageIdByItemId(ITEM_ID)).thenReturn(Mono.empty());
 
         // when
-        imageService.deleteImageByItemId(ITEM_ID);
+        Mono<Void> result = imageService.deleteImageByItemId(ITEM_ID);
 
         // then
-        verify(imageRepository, never()).delete(any());
+        StepVerifier.create(result)
+                .verifyComplete();
+
+        verify(imageRepository).findImageIdByItemId(ITEM_ID);
+        verify(imageRepository, never()).deleteById(anyLong());
     }
 }

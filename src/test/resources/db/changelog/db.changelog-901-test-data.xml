@@ -8,20 +8,17 @@
     <!-- Добавление тестовых товаров (без img_path) -->
     <changeSet id="001-insert-test-items" author="market">
         <insert tableName="items">
-            <column name="id" value="1"/>
             <column name="title" value="Товар 1"/>
             <column name="description" value="Описание товара 1"/>
             <column name="price" value="100"/>
             <!-- image_id пока NULL, заполним позже -->
         </insert>
         <insert tableName="items">
-            <column name="id" value="2"/>
             <column name="title" value="Товар 2"/>
             <column name="description" value="Описание товара 2"/>
             <column name="price" value="200"/>
         </insert>
         <insert tableName="items">
-            <column name="id" value="3"/>
             <column name="title" value="Товар 3"/>
             <column name="description" value="Описание товара 3"/>
             <column name="price" value="300"/>
@@ -70,20 +67,14 @@
         </insert>
     </changeSet>
 
-    <!-- Добавление тестовых изображений -->
+    <!-- Добавление тестовых изображений (SQL т.к. что-то не получалось через ликвид) -->
     <changeSet id="006-insert-test-images" author="market">
-        <insert tableName="images">
-            <column name="data" value="R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" type="BLOB"/>
-            <column name="content_type" value="image/jpeg"/>
-        </insert>
-        <insert tableName="images">
-            <column name="data" value="R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" type="BLOB"/>
-            <column name="content_type" value="image/jpeg"/>
-        </insert>
-        <insert tableName="images">
-            <column name="data" value="R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" type="BLOB"/>
-            <column name="content_type" value="image/jpeg"/>
-        </insert>
+        <sql>
+            INSERT INTO images (data, content_type) VALUES
+            (decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'), 'image/gif'),
+            (decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'), 'image/gif'),
+            (decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'), 'image/gif');
+        </sql>
     </changeSet>
 
     <!-- Привязка изображений к товарам -->

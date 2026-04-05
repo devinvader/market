@@ -5,6 +5,6 @@ import org.springframework.context.annotation.Import;
 import ru.devinvader.market.TestcontainersConfiguration;
 
 @SpringBootTest
-@Import(TestcontainersConfiguration.class)
+@Import({TestcontainersConfiguration.class})
 public abstract class BaseRepositoryTest {
 }

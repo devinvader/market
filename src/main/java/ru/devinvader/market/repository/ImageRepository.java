@@ -1,15 +1,14 @@
 package ru.devinvader.market.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import reactor.core.publisher.Mono;
 import ru.devinvader.market.domain.Image;
 
-import java.util.Optional;
-
-public interface ImageRepository extends JpaRepository<Image, Long> {
-    @Query("SELECT i.id FROM Image i WHERE i.item.id = :itemId LIMIT 1")
-    Long findIdByItemId(@Param("itemId") Long itemId);
-
-    Optional<Image> findByItemId(Long itemId);
+public interface ImageRepository extends ReactiveCrudRepository<Image, Long> {
+    @Query("SELECT i.* FROM images i JOIN items it ON i.id = it.image_id WHERE it.id = :itemId")
+    Mono<Image> findByItemId(@Param("itemId") Long itemId);
+    @Query("SELECT image_id FROM items WHERE id = :itemId")
+    Mono<Long> findImageIdByItemId(@Param("itemId") Long itemId);
 }
