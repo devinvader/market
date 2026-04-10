@@ -11,3 +11,7 @@ spring:
     url: ${SPRING_LIQUIBASE_URL:jdbc:postgresql://localhost:5432/market}
     user: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}

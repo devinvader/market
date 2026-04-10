@@ -16,6 +16,7 @@ public class AdminService {
     private final ItemRepository itemRepository;
     private final ImageService imageService;
     private final ItemMapper itemMapper;
+    private final ItemsService itemsService;
 
     public Mono<Item> findItemById(Long id) {
         return itemRepository.findById(id)
@@ -28,11 +29,13 @@ public class AdminService {
     }
 
     public Mono<Item> saveItem(Item item) {
-        return itemRepository.save(item);
+        return itemRepository.save(item)
+                .flatMap(savedItem -> itemsService.invalidateProductCache(savedItem.getId()).thenReturn(savedItem));
     }
 
     public Mono<Void> deleteItemById(Long id) {
-        return itemRepository.deleteById(id);
+        return itemRepository.deleteById(id)
+                .then(itemsService.invalidateProductCache(id));
     }
 
     public Mono<Item> createItem(String title, String description, Long price, FilePart imageFile) {

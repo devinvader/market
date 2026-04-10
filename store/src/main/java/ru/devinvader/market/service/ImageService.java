@@ -15,6 +15,7 @@ public class ImageService {
 
     private final ImageRepository imageRepository;
     private final ItemRepository itemRepository;
+    private final ItemsService itemsService;
 
     public Mono<Image> saveImage(Long itemId, FilePart filePart) {
         return itemRepository.findById(itemId)
@@ -31,7 +32,8 @@ public class ImageService {
                                     ? filePart.headers().getContentType().toString()
                                     : "application/octet-stream";
                             if (item.getImageId() != null) {
-                                // Обновляем существующее изображение
+                                // Обновляем существующее изображение. itemId не меняется, метаданные товара не меняются.
+                                // Согласно требованиям, инвалидацию Card/List здесь не делаем для экономии ресурсов.
                                 return imageRepository.findById(item.getImageId())
                                         .flatMap(existingImage -> {
                                             existingImage.setData(data);
@@ -39,11 +41,13 @@ public class ImageService {
                                             return imageRepository.save(existingImage);
                                         });
                             } else {
-                                // Создаем новое изображение
+                                // Создаем новое изображение и привязываем к товару
                                 return createNewImage(data, contentType)
                                         .flatMap(savedImage -> {
                                             item.setImageId(savedImage.getId());
-                                            return itemRepository.save(item).thenReturn(savedImage);
+                                            return itemRepository.save(item)
+                                                    .flatMap(savedItem -> itemsService.invalidateProductCache(savedItem.getId()))
+                                                    .thenReturn(savedImage);
                                         });
                             }
                         })
@@ -64,6 +68,6 @@ public class ImageService {
     public Mono<Void> deleteImageByItemId(Long itemId) {
         return imageRepository.findImageIdByItemId(itemId)
                 .flatMap(imageRepository::deleteById)
-                .then();
+                .then(itemsService.invalidateProductCache(itemId));
     }
 }
