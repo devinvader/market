@@ -20,6 +20,7 @@ import ru.devinvader.market.domain.Item;
 import ru.devinvader.market.repository.ImageRepository;
 import ru.devinvader.market.repository.ItemRepository;
 import ru.devinvader.market.service.ImageService;
+import ru.devinvader.market.service.ItemsService;
 
 import java.nio.charset.StandardCharsets;
 
@@ -35,6 +36,9 @@ public class ImageServiceTest {
 
     @Mock
     private ItemRepository itemRepository;
+
+    @Mock
+    private ItemsService itemsService;
 
     @InjectMocks
     private ImageService imageService;
@@ -85,6 +89,7 @@ public class ImageServiceTest {
             return Mono.just(img);
         });
         when(itemRepository.save(any(Item.class))).thenReturn(Mono.just(item));
+        when(itemsService.invalidateProductCache(anyLong())).thenReturn(Mono.empty());
 
         // when
         Mono<Image> result = imageService.saveImage(ITEM_ID, filePart);
@@ -106,6 +111,7 @@ public class ImageServiceTest {
 
         verify(itemRepository).save(item);
         assertEquals(IMAGE_ID, item.getImageId());
+        verify(itemsService).invalidateProductCache(ITEM_ID);
     }
 
     @Test
@@ -140,6 +146,7 @@ public class ImageServiceTest {
         verify(imageRepository).findById(IMAGE_ID);
         verify(imageRepository).save(existingImage);
         verify(itemRepository, never()).save(any());
+        verify(itemsService, never()).invalidateProductCache(anyLong());
     }
 
     @Test
@@ -179,6 +186,7 @@ public class ImageServiceTest {
         // given
         when(imageRepository.findImageIdByItemId(ITEM_ID)).thenReturn(Mono.just(IMAGE_ID));
         when(imageRepository.deleteById(IMAGE_ID)).thenReturn(Mono.empty());
+        when(itemsService.invalidateProductCache(ITEM_ID)).thenReturn(Mono.empty());
 
         // when
         Mono<Void> result = imageService.deleteImageByItemId(ITEM_ID);
@@ -189,12 +197,14 @@ public class ImageServiceTest {
 
         verify(imageRepository).findImageIdByItemId(ITEM_ID);
         verify(imageRepository).deleteById(IMAGE_ID);
+        verify(itemsService).invalidateProductCache(ITEM_ID);
     }
 
     @Test
     void deleteImageByItemId_notFound_completesWithoutError() {
         // given
         when(imageRepository.findImageIdByItemId(ITEM_ID)).thenReturn(Mono.empty());
+        when(itemsService.invalidateProductCache(ITEM_ID)).thenReturn(Mono.empty());
 
         // when
         Mono<Void> result = imageService.deleteImageByItemId(ITEM_ID);
@@ -205,5 +215,6 @@ public class ImageServiceTest {
 
         verify(imageRepository).findImageIdByItemId(ITEM_ID);
         verify(imageRepository, never()).deleteById(anyLong());
+        verify(itemsService).invalidateProductCache(ITEM_ID);
     }
 }

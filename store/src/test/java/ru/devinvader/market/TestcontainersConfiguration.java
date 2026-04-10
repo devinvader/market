@@ -5,6 +5,7 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Bean;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
+import com.redis.testcontainers.RedisContainer;
 
 @TestConfiguration
 public class TestcontainersConfiguration {
@@ -16,5 +17,11 @@ public class TestcontainersConfiguration {
                 .withDatabaseName("testdb")
                 .withUsername("test")
                 .withPassword("test");
+    }
+
+    @Bean
+    @ServiceConnection
+    public RedisContainer redisContainer() {
+        return new RedisContainer(DockerImageName.parse("redis:7-alpine"));
     }
 }
