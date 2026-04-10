@@ -18,6 +18,7 @@ import ru.devinvader.market.web.dto.ItemDto;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import ru.devinvader.market.service.ItemsService;
 
 @ExtendWith(MockitoExtension.class)
 public class AdminServiceTest {
@@ -31,6 +32,9 @@ public class AdminServiceTest {
     @Spy
     private ItemMapper itemMapper = new ItemMapper();
 
+    @Mock
+    private ItemsService itemsService;
+    
     @InjectMocks
     private AdminService adminService;
 
@@ -71,6 +75,7 @@ public class AdminServiceTest {
         Item itemToSave = new Item(null, "Item", "Desc", 5000L, null);
         Item savedItem = new Item(1L, "Item", "Desc", 5000L, null);
         when(itemRepository.save(itemToSave)).thenReturn(Mono.just(savedItem));
+        when(itemsService.invalidateProductCache(anyLong())).thenReturn(Mono.empty());
 
         // when
         Item result = adminService.saveItem(itemToSave).block();
@@ -79,6 +84,7 @@ public class AdminServiceTest {
         assertNotNull(result);
         assertEquals(savedItem.getId(), result.getId());
         verify(itemRepository).save(itemToSave);
+        verify(itemsService).invalidateProductCache(savedItem.getId());
     }
 
     @Test
@@ -86,12 +92,14 @@ public class AdminServiceTest {
         // given
         Long id = 1L;
         when(itemRepository.deleteById(id)).thenReturn(Mono.empty());
+        when(itemsService.invalidateProductCache(id)).thenReturn(Mono.empty());
 
         // when
         adminService.deleteItemById(id).block();
 
         // then
         verify(itemRepository).deleteById(id);
+        verify(itemsService).invalidateProductCache(id);
     }
 
     @Test
@@ -136,6 +144,7 @@ public class AdminServiceTest {
         Item unsavedItem = new Item(null, title, description, price, null);
         Item savedItem = new Item(1L, title, description, price, null);
         when(itemRepository.save(any(Item.class))).thenReturn(Mono.just(savedItem));
+        when(itemsService.invalidateProductCache(anyLong())).thenReturn(Mono.empty());
 
         // when
         Item result = adminService.createItem(title, description, price, imageFile).block();
@@ -144,6 +153,7 @@ public class AdminServiceTest {
         assertNotNull(result);
         assertEquals(savedItem.getId(), result.getId());
         verify(itemRepository).save(unsavedItem);
+        verify(itemsService).invalidateProductCache(savedItem.getId());
         verify(imageService, never()).saveImage(anyLong(), any());
     }
 
@@ -158,6 +168,7 @@ public class AdminServiceTest {
         Item unsavedItem = new Item(null, title, description, price, null);
         Item savedItem = new Item(1L, title, description, price, null);
         when(itemRepository.save(any(Item.class))).thenReturn(Mono.just(savedItem));
+        when(itemsService.invalidateProductCache(anyLong())).thenReturn(Mono.empty());
         when(imageService.saveImage(eq(1L), eq(imageFile))).thenReturn(Mono.empty());
 
         // when
@@ -167,6 +178,7 @@ public class AdminServiceTest {
         assertNotNull(result);
         assertEquals(savedItem.getId(), result.getId());
         verify(itemRepository).save(unsavedItem);
+        verify(itemsService).invalidateProductCache(savedItem.getId());
         verify(imageService).saveImage(1L, imageFile);
     }
 
@@ -180,6 +192,7 @@ public class AdminServiceTest {
         when(imageFile.filename()).thenReturn("");
         Item savedItem = new Item(1L, title, description, price, null);
         when(itemRepository.save(any(Item.class))).thenReturn(Mono.just(savedItem));
+        when(itemsService.invalidateProductCache(anyLong())).thenReturn(Mono.empty());
 
         // when
         Item result = adminService.createItem(title, description, price, imageFile).block();
@@ -187,6 +200,7 @@ public class AdminServiceTest {
         // then
         assertNotNull(result);
         verify(itemRepository).save(any(Item.class));
+        verify(itemsService).invalidateProductCache(savedItem.getId());
         verify(imageService, never()).saveImage(anyLong(), any());
     }
 
@@ -202,6 +216,7 @@ public class AdminServiceTest {
         Item updatedItem = new Item(id, title, description, price, null);
         when(itemRepository.findById(id)).thenReturn(Mono.just(existingItem));
         when(itemRepository.save(any(Item.class))).thenReturn(Mono.just(updatedItem));
+        when(itemsService.invalidateProductCache(anyLong())).thenReturn(Mono.empty());
 
         // when
         Item result = adminService.updateItem(id, title, description, price, imageFile).block();
@@ -211,6 +226,7 @@ public class AdminServiceTest {
         assertEquals(updatedItem, result);
         verify(itemRepository).findById(id);
         verify(itemRepository).save(existingItem);
+        verify(itemsService).invalidateProductCache(id);
         verify(imageService, never()).saveImage(anyLong(), any());
     }
 
