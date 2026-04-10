@@ -105,7 +105,8 @@ docker compose build
 docker compose up -d
 ```
 
-2. Приложение будет доступно по адресу [http://localhost:8080/](http://localhost:8080/)
+2. Приложение Store (Маркет) будет доступно по адресу [http://localhost:8080/](http://localhost:8080/)
+   Приложение Payment Service будет доступно по адресу [http://localhost:8081/](http://localhost:8081/)
 
 3. Остановка контейнеров:
 
@@ -127,13 +128,19 @@ docker compose down -v
 
 #### Запуск
 ```bash
-mvn spring-boot:run
+mvn spring-boot:run -pl store
 ```
 
-Либо запустить забилженный JAR:
+Для Payment Service:
+```bash
+mvn spring-boot:run -pl payment
+```
+
+Либо запустить забилженные JAR:
 
 ```bash
-java -jar target/market-0.0.1-SNAPSHOT.jar
+java -jar store/target/store-0.0.1-SNAPSHOT.jar
+java -jar payment/target/payment-0.0.1-SNAPSHOT.jar
 ```
 
 ## Конфигурация

@@ -20,19 +20,50 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
-    build: .
-    container_name: market-app
+  redis:
+    image: redis:7-alpine
+    container_name: market-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - market-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  store:
+    build:
+      context: .
+      target: store
+    container_name: market-store
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       SPRING_LIQUIBASE_URL: jdbc:postgresql://postgres:5432/market
       SPRING_R2DBC_URL: r2dbc:postgresql://postgres:5432/market
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
     ports:
       - "8080:8080"
+    networks:
+      - market-network
+
+  payment:
+    build:
+      context: .
+      target: payment
+    container_name: market-payment
+    environment:
+      SERVER_PORT: 8081
+    ports:
+      - "8081:8081"
     networks:
       - market-network
 
