@@ -15,3 +15,7 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
+
+integration:
+  payment-service:
+    url: ${PAYMENT_SERVICE_URL:http://localhost:8081}
