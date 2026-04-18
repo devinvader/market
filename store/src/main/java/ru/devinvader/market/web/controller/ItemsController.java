@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import reactor.core.publisher.Mono;
 import ru.devinvader.market.service.CartService;
 import ru.devinvader.market.service.ItemsService;
+import ru.devinvader.market.service.PaymentClientService;
 import ru.devinvader.market.web.dto.SortTypeDto;
 import ru.devinvader.market.web.dto.ItemsActionDto;
 import ru.devinvader.market.web.dto.ItemActionDto;
@@ -21,6 +22,7 @@ public class ItemsController {
 
     private final ItemsService itemsService;
     private final CartService cartService;
+    private final PaymentClientService paymentClientService;
 
     @GetMapping(path = {"/", "/items"})
     public Mono<String> getItems(
@@ -73,9 +75,30 @@ public class ItemsController {
                 .then(Mono.just("redirect:/items/" + id));
     }
 
+    /**
+     * Оформление заказа с предварительной проверкой оплаты.
+     * 1. Получаем корзину и суммарный итог.
+     * 2. Вызываем paymentClientService.pay(total).
+     * 3. При success=true — редирект на страницу заказа.
+     * 4. При success=false или недоступности сервиса — редирект в корзину с ошибкой.
+     */
     @PostMapping("/buy")
     public Mono<String> buyItems() {
         return cartService.getUserCart()
-                .map(cart -> "redirect:/orders/" + cart.getId() + "?newOrder=true");
+                .flatMap(cart -> cartService.getTotal()
+                        .flatMap(total -> paymentClientService.pay(total)
+                                .map(paymentResponse -> {
+                                    if (paymentResponse.success()) {
+                                        return "redirect:/orders/" + cart.getId() + "?newOrder=true";
+                                    } else {
+                                        String msg = paymentResponse.message() != null
+                                                ? paymentResponse.message()
+                                                : "Ошибка оплаты";
+                                        return "redirect:/cart/items?paymentError=" +
+                                                java.net.URLEncoder.encode(msg, java.nio.charset.StandardCharsets.UTF_8);
+                                    }
+                                })
+                        )
+                );
     }
 }

@@ -6,10 +6,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import reactor.core.publisher.Mono;
 import ru.devinvader.market.service.CartService;
-import ru.devinvader.market.web.dto.ActionTypeDto;
+import ru.devinvader.market.service.PaymentClientService;
+import ru.devinvader.market.utils.ClientConstants;
 import ru.devinvader.market.web.dto.ItemActionForm;
 import ru.devinvader.market.web.dto.ItemDto;
 
@@ -20,15 +20,22 @@ import java.util.List;
 public class CartController {
 
     private final CartService cartService;
+    private final PaymentClientService paymentClientService;
 
     @GetMapping("/cart/items")
     public Mono<String> getItems(Model model) {
         Mono<List<ItemDto>> itemsMono = cartService.getCartItems().collectList();
         Mono<Long> totalMono = cartService.getTotal();
-        return Mono.zip(itemsMono, totalMono)
+        Mono<Long> balanceMono = paymentClientService.getBalance();
+
+        return Mono.zip(itemsMono, totalMono, balanceMono)
                 .map(tuple -> {
+                    long balance = tuple.getT3();
+                    boolean serviceAvailable = balance != ClientConstants.BALANCE_SERVICE_UNAVAILABLE;
                     model.addAttribute("items", tuple.getT1());
                     model.addAttribute("total", tuple.getT2());
+                    model.addAttribute("balance", balance);
+                    model.addAttribute("paymentServiceAvailable", serviceAvailable);
                     return "cart";
                 });
     }
@@ -40,10 +47,16 @@ public class CartController {
     ) {
         Mono<List<ItemDto>> itemsMono = cartService.actOnCartItems(item.id(), item.action()).collectList();
         Mono<Long> totalMono = cartService.getTotal();
-        return Mono.zip(itemsMono, totalMono)
+        Mono<Long> balanceMono = paymentClientService.getBalance();
+
+        return Mono.zip(itemsMono, totalMono, balanceMono)
                 .map(tuple -> {
+                    long balance = tuple.getT3();
+                    boolean serviceAvailable = balance != ClientConstants.BALANCE_SERVICE_UNAVAILABLE;
                     model.addAttribute("items", tuple.getT1());
                     model.addAttribute("total", tuple.getT2());
+                    model.addAttribute("balance", balance);
+                    model.addAttribute("paymentServiceAvailable", serviceAvailable);
                     return "cart";
                 });
     }

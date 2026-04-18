@@ -1,5 +1,7 @@
 package ru.devinvader.market.integration.controller;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -7,11 +9,13 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.wiremock.spring.InjectWireMock;
 import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.CartItem;
 import ru.devinvader.market.repository.CartItemRepository;
 import ru.devinvader.market.web.dto.ActionTypeDto;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
@@ -22,6 +26,24 @@ class ItemsControllerIntegrationTest extends IntegrationBaseTest {
 
     @Autowired
     private CartItemRepository cartItemRepository;
+
+    @InjectWireMock("payment-service")
+    private WireMockServer wireMock;
+
+    @BeforeEach
+    void setupPaymentService() {
+        wireMock.stubFor(get(urlEqualTo("/api/payment/balance"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"balance\": 1000000}")));
+
+        wireMock.stubFor(post(urlEqualTo("/api/payment/pay"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"success\": true, \"newBalance\": 990000, \"message\": \"Оплата прошла успешно\"}")));
+    }
 
     @Test
     void getItems_shouldReturnItemsView() {
