@@ -46,10 +46,25 @@
         </div>
         <div class="row p-2">
             <div class="col">
+                <div th:if="${!paymentServiceAvailable}" class="alert alert-warning" role="alert">
+                    <strong>Сервис платежей недоступен.</strong>
+                </div>
+                <div th:if="${param.paymentError}" class="alert alert-danger" role="alert">
+                    <strong>Ошибка оплаты:</strong>
+                    <span th:text="${param.paymentError}"></span>
+                </div>
                 <form action="/buy" method="post" th:if="${!items.isEmpty()}">
                     <div class="hstack gap-3">
-                        <h2 th:text="'Итого: '+${total}+' руб.'"/>
-                        <button class="btn btn-warning ms-auto">Купить</button>
+                        <div>
+                            <h2 th:text="'Итого: '+${total}+' руб.'"/>
+                            <h3 th:if="${paymentServiceAvailable}"
+                                   th:text="'Баланс: '+${balance}+' руб.'"/>
+                        </div>
+                        <button class="btn btn-warning ms-auto"
+                                th:disabled="${!paymentServiceAvailable or balance < total}"
+                                th:classappend="${!paymentServiceAvailable or balance < total} ? 'disabled' : ''">
+                            Купить
+                        </button>
                     </div>
                 </form>
             </div>
