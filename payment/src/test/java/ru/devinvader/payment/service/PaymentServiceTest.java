@@ -28,7 +28,9 @@ class PaymentServiceTest {
 
     @Test
     void getBalance_returnsInitialBalance() {
+        // when
         StepVerifier.create(paymentService.getBalance())
+        // then
                 .assertNext(response -> {
                     assertNotNull(response);
                     assertEquals(INITIAL_BALANCE, response.getBalance());
@@ -38,9 +40,12 @@ class PaymentServiceTest {
 
     @Test
     void pay_sufficientBalance_returnsSuccess() {
+        // given
         long amount = 3000L;
 
+        // when
         StepVerifier.create(paymentService.pay(new PaymentRequest().amount(amount)))
+        // then
                 .assertNext(response -> {
                     assertTrue(response.getSuccess());
                     assertEquals(INITIAL_BALANCE - amount, response.getNewBalance());
@@ -51,9 +56,12 @@ class PaymentServiceTest {
 
     @Test
     void pay_insufficientBalance_returnsFailure() {
+        // given
         long amount = INITIAL_BALANCE + 1;
 
+        // when
         StepVerifier.create(paymentService.pay(new PaymentRequest().amount(amount)))
+        // then
                 .assertNext(response -> {
                     assertFalse(response.getSuccess());
                     assertEquals(INITIAL_BALANCE, response.getNewBalance());
@@ -64,6 +72,7 @@ class PaymentServiceTest {
 
     @Test
     void pay_exactBalance_returnsSuccessWithZeroBalance() {
+        // given и when
         StepVerifier.create(paymentService.pay(new PaymentRequest().amount(INITIAL_BALANCE)))
                 .assertNext(response -> {
                     assertTrue(response.getSuccess());
@@ -71,7 +80,7 @@ class PaymentServiceTest {
                 })
                 .verifyComplete();
 
-        // Следующий платёж должен быть отклонён
+        // then
         StepVerifier.create(paymentService.pay(new PaymentRequest().amount(1L)))
                 .assertNext(response -> assertFalse(response.getSuccess()))
                 .verifyComplete();
@@ -79,11 +88,12 @@ class PaymentServiceTest {
 
     @Test
     void pay_balanceUpdatedAfterSuccessfulPayment() {
+        // given
         long firstPayment = 4000L;
         long secondPayment = 3000L;
-
+        // when
         paymentService.pay(new PaymentRequest().amount(firstPayment)).block();
-
+        // then
         StepVerifier.create(paymentService.getBalance())
                 .assertNext(response -> assertEquals(INITIAL_BALANCE - firstPayment, response.getBalance()))
                 .verifyComplete();
@@ -98,6 +108,7 @@ class PaymentServiceTest {
 
     @Test
     void pay_concurrentPayments_balanceIsConsistent() throws InterruptedException {
+        // given
         int threadCount = 10;
         long paymentAmount = 1000L;
         // 10 потоков * 1000 = 10000 = INITIAL_BALANCE, все должны пройти
@@ -105,6 +116,7 @@ class PaymentServiceTest {
         CountDownLatch latch = new CountDownLatch(threadCount);
         AtomicInteger successCount = new AtomicInteger(0);
 
+        // when
         for (int i = 0; i < threadCount; i++) {
             executor.submit(() -> {
                 try {
@@ -123,10 +135,9 @@ class PaymentServiceTest {
         latch.await();
         executor.shutdown();
 
-        // Все платежи должны пройти (сумма точно равна балансу)
+        // then
         assertEquals(threadCount, successCount.get());
 
-        // Финальный баланс = 0
         StepVerifier.create(paymentService.getBalance())
                 .assertNext(response -> assertEquals(0L, response.getBalance()))
                 .verifyComplete();
