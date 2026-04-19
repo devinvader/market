@@ -29,17 +29,15 @@ class OrderItemMapperTest {
         item.setTitle("Test Item");
         item.setPrice(500L);
 
-        CartItem cartItem = new CartItem();
-        cartItem.setItem(item);
-        cartItem.setCount(5);
+        CartItem cartItem = new CartItem(null, 1L, item.getId(), 5);
 
         // when
         OrderItem orderItem = orderItemMapper.fromDto(order, cartItem);
 
         // then
         assertNotNull(orderItem);
-        assertSame(order, orderItem.getOrder());
-        assertSame(item, orderItem.getItem());
+        assertEquals(order.getId(), orderItem.getOrderId());
+        assertEquals(item.getId(), orderItem.getItemId());
         assertEquals(5, orderItem.getCount());
     }
 
@@ -54,17 +52,15 @@ class OrderItemMapperTest {
         item.setTitle("Another Item");
         item.setPrice(1000L);
 
-        CartItem cartItem = new CartItem();
-        cartItem.setItem(item);
-        cartItem.setCount(3);
+        CartItem cartItem = new CartItem(null, 1L, item.getId(), 3);
 
         // when
         OrderItem orderItem = orderItemMapper.fromDto(order, cartItem);
 
         // then
         assertNotNull(orderItem);
-        assertSame(order, orderItem.getOrder());
-        assertSame(item, orderItem.getItem());
+        assertEquals(order.getId(), orderItem.getOrderId());
+        assertEquals(item.getId(), orderItem.getItemId());
         assertEquals(3, orderItem.getCount());
     }
 }

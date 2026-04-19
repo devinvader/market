@@ -1,33 +1,29 @@
 package ru.devinvader.market.unit.service;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Spy;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.Item;
+import ru.devinvader.market.mapper.ItemMapper;
 import ru.devinvader.market.repository.ItemRepository;
 import ru.devinvader.market.service.CartService;
-import ru.devinvader.market.service.ImageService;
 import ru.devinvader.market.service.ItemsService;
 import ru.devinvader.market.web.dto.ItemDto;
 import ru.devinvader.market.web.dto.PagedListItemDto;
+import ru.devinvader.market.web.dto.PagingDto;
 import ru.devinvader.market.web.dto.SortTypeDto;
-import ru.devinvader.market.mapper.ItemMapper;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,159 +31,275 @@ public class ItemsServiceTest {
 
     @Mock
     private ItemRepository itemRepository;
-    @Mock
-    private ImageService imageService;
+
     @Mock
     private CartService cartService;
+
     @Spy
     private ItemMapper itemMapper = new ItemMapper();
+
     @InjectMocks
     private ItemsService itemsService;
 
     @Captor
     private ArgumentCaptor<List<Long>> itemIdsCaptor;
 
-    @BeforeEach
-    void setUp() {
-        // Заглушки чтобы тесты не падали из-за NPE
-        lenient().when(cartService.getItemCounts(anyList())).thenReturn(Map.of()); // все count - 0
-    }
+    private final String SEARCH = "test";
+    private final SortTypeDto SORT_TYPE = SortTypeDto.NO;
+    private final int PAGE = 0;
+    private final int SIZE = 10;
 
     @Test
-    void getItems_emptyResult_returnsEmptyList() {
+    void getItems_emptyResult_returnsEmptyRows() {
         // given
-        Page<Item> emptyPage = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
-        when(itemRepository.searchByTitleOrDescription(anyString(), any(Pageable.class)))
-                .thenReturn(emptyPage);
+        Pageable pageable = PageRequest.of(PAGE, SIZE, SORT_TYPE.getSort());
+        when(itemRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(SEARCH, SEARCH, pageable))
+                .thenReturn(Flux.empty());
+        when(itemRepository.countByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(SEARCH, SEARCH))
+                .thenReturn(Mono.just(0L));
 
         // when
-        PagedListItemDto result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
+        Mono<PagedListItemDto> result = itemsService.getItems(SEARCH, SORT_TYPE, PAGE, SIZE);
 
         // then
-        assertEquals(0, result.items().size());
-        verify(itemRepository).searchByTitleOrDescription(eq(""), any(Pageable.class));
-        verify(cartService).getItemCounts(eq(List.of()));
-        verifyNoInteractions(imageService);
+        StepVerifier.create(result)
+                .assertNext(pagedDto -> {
+                    assertEquals(0, pagedDto.items().size());
+                    assertNotNull(pagedDto.pagingDto());
+                    assertEquals(PAGE, pagedDto.pagingDto().pageNumber());
+                    assertEquals(SIZE, pagedDto.pagingDto().pageSize());
+                    assertFalse(pagedDto.pagingDto().hasPrevious());
+                    assertFalse(pagedDto.pagingDto().hasNext());
+                })
+                .verifyComplete();
+
+        verify(itemRepository).findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(SEARCH, SEARCH, pageable);
+        verify(itemRepository).countByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(SEARCH, SEARCH);
     }
 
     @Test
     void getItems_oneItem_returnsOneGroupWithTwoEmpty() {
         // given
+        Pageable pageable = PageRequest.of(PAGE, SIZE, SORT_TYPE.getSort());
         Item item = new Item(1L, "Item1", "Desc1", 1000L, null);
-        Page<Item> page = new PageImpl<>(List.of(item), PageRequest.of(0, 10), 1);
-        when(itemRepository.searchByTitleOrDescription(anyString(), any(Pageable.class)))
-                .thenReturn(page);
-        when(cartService.getItemCounts(List.of(1L))).thenReturn(Map.of(1L, 2));
+        when(itemRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(SEARCH, SEARCH, pageable))
+                .thenReturn(Flux.just(item));
+        when(itemRepository.countByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(SEARCH, SEARCH))
+                .thenReturn(Mono.just(1L));
+        when(cartService.getItemCounts(List.of(1L))).thenReturn(Mono.just(Map.of(1L, 2)));
+
+        ItemDto itemDto = new ItemDto(1L, "Item1", "Desc1", 1000L, 2);
 
         // when
-        PagedListItemDto result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
+        Mono<PagedListItemDto> result = itemsService.getItems(SEARCH, SORT_TYPE, PAGE, SIZE);
 
         // then
-        assertEquals(1, result.items().size());
-        List<ItemDto> group = result.items().get(0);
-        assertEquals(3, group.size());
-        assertEquals(1L, group.get(0).id());
-        assertEquals(2, group.get(0).count());
-        assertEquals(ItemDto.empty(), group.get(1));
-        assertEquals(ItemDto.empty(), group.get(2));
+        StepVerifier.create(result)
+                .assertNext(pagedDto -> {
+                    assertEquals(1, pagedDto.items().size());
+                    List<ItemDto> row = pagedDto.items().get(0);
+                    assertEquals(3, row.size());
+                    assertEquals(itemDto, row.get(0));
+                    assertEquals(ItemDto.empty(), row.get(1));
+                    assertEquals(ItemDto.empty(), row.get(2));
+                    assertEquals(PAGE, pagedDto.pagingDto().pageNumber());
+                    assertEquals(SIZE, pagedDto.pagingDto().pageSize());
+                    assertFalse(pagedDto.pagingDto().hasPrevious());
+                    assertFalse(pagedDto.pagingDto().hasNext());
+                })
+                .verifyComplete();
 
         verify(cartService).getItemCounts(itemIdsCaptor.capture());
         assertEquals(List.of(1L), itemIdsCaptor.getValue());
     }
 
     @Test
-    void getItems_threeItems_returnsOneGroupWithNoEmpty() {
+    void getItems_threeItems_returnsOneGroupWithoutEmpty() {
         // given
+        Pageable pageable = PageRequest.of(PAGE, SIZE, SORT_TYPE.getSort());
         Item item1 = new Item(1L, "Item1", "Desc1", 1000L, null);
         Item item2 = new Item(2L, "Item2", "Desc2", 2000L, null);
         Item item3 = new Item(3L, "Item3", "Desc3", 3000L, null);
-        Page<Item> page = new PageImpl<>(List.of(item1, item2, item3), PageRequest.of(0, 10), 3);
-        when(itemRepository.searchByTitleOrDescription(anyString(), any(Pageable.class)))
-                .thenReturn(page);
-        when(cartService.getItemCounts(List.of(1L, 2L, 3L))).thenReturn(Map.of(1L, 1, 2L, 0, 3L, 5));
+        when(itemRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(SEARCH, SEARCH, pageable))
+                .thenReturn(Flux.just(item1, item2, item3));
+        when(itemRepository.countByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(SEARCH, SEARCH))
+                .thenReturn(Mono.just(3L));
+        when(cartService.getItemCounts(List.of(1L, 2L, 3L))).thenReturn(Mono.just(Map.of(1L, 1, 2L, 0, 3L, 5)));
+
+        ItemDto dto1 = new ItemDto(1L, "Item1", "Desc1", 1000L, 1);
+        ItemDto dto2 = new ItemDto(2L, "Item2", "Desc2", 2000L, 0);
+        ItemDto dto3 = new ItemDto(3L, "Item3", "Desc3", 3000L, 5);
 
         // when
-        PagedListItemDto result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
+        Mono<PagedListItemDto> result = itemsService.getItems(SEARCH, SORT_TYPE, PAGE, SIZE);
 
         // then
-        assertEquals(1, result.items().size());
-        List<ItemDto> group = result.items().get(0);
-        assertEquals(3, group.size());
-        assertEquals(1L, group.get(0).id());
-        assertEquals(1, group.get(0).count());
-        assertEquals(2L, group.get(1).id());
-        assertEquals(0, group.get(1).count());
-        assertEquals(3L, group.get(2).id());
-        assertEquals(5, group.get(2).count());
+        StepVerifier.create(result)
+                .assertNext(pagedDto -> {
+                    assertEquals(1, pagedDto.items().size());
+                    List<ItemDto> row = pagedDto.items().get(0);
+                    assertEquals(3, row.size());
+                    assertEquals(dto1, row.get(0));
+                    assertEquals(dto2, row.get(1));
+                    assertEquals(dto3, row.get(2));
+                })
+                .verifyComplete();
 
         verify(cartService).getItemCounts(itemIdsCaptor.capture());
         assertEquals(List.of(1L, 2L, 3L), itemIdsCaptor.getValue());
     }
 
     @Test
-    void getItems_fourItems_returnsTwoGroups() {
+    void getItems_fourItems_returnsTwoGroups_secondGroupHasOneItemAndTwoEmpty() {
         // given
-        Item item1 = new Item(1L, "Item1", "Desc1", 1000L, null);
-        Item item2 = new Item(2L, "Item2", "Desc2", 2000L, null);
-        Item item3 = new Item(3L, "Item3", "Desc3", 3000L, null);
-        Item item4 = new Item(4L, "Item4", "Desc4", 4000L, null);
-        Page<Item> page = new PageImpl<>(List.of(item1, item2, item3, item4), PageRequest.of(0, 10), 4);
-        when(itemRepository.searchByTitleOrDescription(anyString(), any(Pageable.class)))
-                .thenReturn(page);
-        when(cartService.getItemCounts(List.of(1L, 2L, 3L, 4L))).thenReturn(Map.of());
+        Pageable pageable = PageRequest.of(PAGE, SIZE, SORT_TYPE.getSort());
+        Item item1 = new Item(1L, "Item 1", "Desc 1", 1000L, null);
+        Item item2 = new Item(2L, "Item 2", "Desc 2", 2000L, null);
+        Item item3 = new Item(3L, "Item 3", "Desc 3", 3000L, null);
+        Item item4 = new Item(4L, "Item 4", "Desc 4", 4000L, null);
+        when(itemRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(SEARCH, SEARCH, pageable))
+                .thenReturn(Flux.just(item1, item2, item3, item4));
+        when(itemRepository.countByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(SEARCH, SEARCH))
+                .thenReturn(Mono.just(4L));
+        when(cartService.getItemCounts(List.of(1L, 2L, 3L, 4L))).thenReturn(Mono.just(Map.of()));
+
+        ItemDto dto1 = new ItemDto(1L, "Item 1", "Desc 1", 1000L, 0);
+        ItemDto dto2 = new ItemDto(2L, "Item 2", "Desc 2", 2000L, 0);
+        ItemDto dto3 = new ItemDto(3L, "Item 3", "Desc 3", 3000L, 0);
+        ItemDto dto4 = new ItemDto(4L, "Item 4", "Desc 4", 4000L, 0);
 
         // when
-        PagedListItemDto result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
+        Mono<PagedListItemDto> result = itemsService.getItems(SEARCH, SORT_TYPE, PAGE, SIZE);
 
         // then
-        assertEquals(2, result.items().size());
-        List<ItemDto> group1 = result.items().get(0);
-        assertEquals(3, group1.size());
-        assertEquals(1L, group1.get(0).id());
-        assertEquals(2L, group1.get(1).id());
-        assertEquals(3L, group1.get(2).id());
+        StepVerifier.create(result)
+                .assertNext(pagedDto -> {
+                    assertEquals(2, pagedDto.items().size());
+                    List<ItemDto> row1 = pagedDto.items().get(0);
+                    assertEquals(3, row1.size());
+                    assertEquals(dto1, row1.get(0));
+                    assertEquals(dto2, row1.get(1));
+                    assertEquals(dto3, row1.get(2));
 
-        List<ItemDto> group2 = result.items().get(1);
-        assertEquals(3, group2.size());
-        assertEquals(4L, group2.get(0).id());
-        assertEquals(ItemDto.empty(), group2.get(1));
-        assertEquals(ItemDto.empty(), group2.get(2));
+                    List<ItemDto> row2 = pagedDto.items().get(1);
+                    assertEquals(3, row2.size());
+                    assertEquals(dto4, row2.get(0));
+                    assertEquals(ItemDto.empty(), row2.get(1));
+                    assertEquals(ItemDto.empty(), row2.get(2));
+                })
+                .verifyComplete();
 
         verify(cartService).getItemCounts(itemIdsCaptor.capture());
         assertEquals(List.of(1L, 2L, 3L, 4L), itemIdsCaptor.getValue());
     }
 
     @Test
-    void getItems_fiveItems_returnsTwoGroups() {
+    void getItem_existingItemWithCartCount_returnsItemDto() {
         // given
-        Item item1 = new Item(1L, "Item1", "Desc1", 1000L, null);
-        Item item2 = new Item(2L, "Item2", "Desc2", 2000L, null);
-        Item item3 = new Item(3L, "Item3", "Desc3", 3000L, null);
-        Item item4 = new Item(4L, "Item4", "Desc4", 4000L, null);
-        Item item5 = new Item(5L, "Item5", "Desc5", 5000L, null);
-        Page<Item> page = new PageImpl<>(List.of(item1, item2, item3, item4, item5), PageRequest.of(0, 10), 5);
-        when(itemRepository.searchByTitleOrDescription(anyString(), any(Pageable.class)))
-                .thenReturn(page);
-        when(cartService.getItemCounts(List.of(1L, 2L, 3L, 4L, 5L))).thenReturn(Map.of());
+        long itemId = 1L;
+        Item item = new Item(itemId, "Item 1", "Desc 1", 1000L, null);
+        when(itemRepository.findById(itemId)).thenReturn(Mono.just(item));
+        when(cartService.getItemCounts(List.of(itemId))).thenReturn(Mono.just(Map.of(itemId, 3)));
+
+        ItemDto expectedDto = new ItemDto(itemId, "Item 1", "Desc 1", 1000L, 3);
 
         // when
-        PagedListItemDto result = itemsService.getItems("", SortTypeDto.NO, 0, 10);
+        Mono<ItemDto> result = itemsService.getItem(itemId);
 
         // then
-        assertEquals(2, result.items().size());
-        List<ItemDto> group1 = result.items().get(0);
-        assertEquals(3, group1.size());
-        assertEquals(1L, group1.get(0).id());
-        assertEquals(2L, group1.get(1).id());
-        assertEquals(3L, group1.get(2).id());
+        StepVerifier.create(result)
+                .expectNext(expectedDto)
+                .verifyComplete();
 
-        List<ItemDto> group2 = result.items().get(1);
-        assertEquals(3, group2.size());
-        assertEquals(4L, group2.get(0).id());
-        assertEquals(5L, group2.get(1).id());
-        assertEquals(ItemDto.empty(), group2.get(2));
+        verify(itemRepository).findById(itemId);
+        verify(cartService).getItemCounts(List.of(itemId));
+    }
 
-        verify(cartService).getItemCounts(itemIdsCaptor.capture());
-        assertEquals(List.of(1L, 2L, 3L, 4L, 5L), itemIdsCaptor.getValue());
+    @Test
+    void getItem_existingItemWithoutCartCount_returnsItemDtoWithZeroCount() {
+        // given
+        long itemId = 2L;
+        Item item = new Item(itemId, "Item 2", "Desc 2", 2000L, null);
+        when(itemRepository.findById(itemId)).thenReturn(Mono.just(item));
+        when(cartService.getItemCounts(List.of(itemId))).thenReturn(Mono.just(Map.of()));
+
+        ItemDto expectedDto = new ItemDto(itemId, "Item 2", "Desc 2", 2000L, 0);
+
+        // when
+        Mono<ItemDto> result = itemsService.getItem(itemId);
+
+        // then
+        StepVerifier.create(result)
+                .expectNext(expectedDto)
+                .verifyComplete();
+
+        verify(itemRepository).findById(itemId);
+        verify(cartService).getItemCounts(List.of(itemId));
+    }
+
+    @Test
+    void getItem_nonExistingItem_throwsError() {
+        // given
+        long itemId = 999L;
+        when(itemRepository.findById(itemId)).thenReturn(Mono.empty());
+
+        // when
+        Mono<ItemDto> result = itemsService.getItem(itemId);
+
+        // then
+        StepVerifier.create(result)
+                .expectErrorMatches(e ->
+                        e instanceof RuntimeException && e.getMessage().equals("Item not found"))
+                .verify();
+
+        verify(itemRepository).findById(itemId);
+    }
+
+    @Test
+    void getItems_pagination_hasPreviousAndNext() {
+        // given
+        Pageable pageable = PageRequest.of(2, 5, SORT_TYPE.getSort());
+        when(itemRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(SEARCH, SEARCH, pageable))
+                .thenReturn(Flux.empty());
+        when(itemRepository.countByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(SEARCH, SEARCH))
+                .thenReturn(Mono.just(20L));
+
+        // when
+        Mono<PagedListItemDto> result = itemsService.getItems(SEARCH, SORT_TYPE, 2, 5);
+
+        // then
+        StepVerifier.create(result)
+                .assertNext(pagedDto -> {
+                    PagingDto paging = pagedDto.pagingDto();
+                    assertEquals(2, paging.pageNumber());
+                    assertEquals(5, paging.pageSize());
+                    assertTrue(paging.hasPrevious());
+                    assertTrue(paging.hasNext());
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void getItems_pagination_noNext() {
+        // given
+        Pageable pageable = PageRequest.of(2, 10, SORT_TYPE.getSort());
+        when(itemRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(SEARCH, SEARCH, pageable))
+                .thenReturn(Flux.empty());
+        when(itemRepository.countByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(SEARCH, SEARCH))
+                .thenReturn(Mono.just(25L));
+
+        // when
+        Mono<PagedListItemDto> result = itemsService.getItems(SEARCH, SORT_TYPE, 2, 10);
+
+        // then
+        StepVerifier.create(result)
+                .assertNext(pagedDto -> {
+                    PagingDto paging = pagedDto.pagingDto();
+                    assertEquals(2, paging.pageNumber());
+                    assertEquals(10, paging.pageSize());
+                    assertTrue(paging.hasPrevious());
+                    assertFalse(paging.hasNext());
+                })
+                .verifyComplete();
     }
 }

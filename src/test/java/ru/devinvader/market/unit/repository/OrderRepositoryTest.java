@@ -2,6 +2,7 @@ package ru.devinvader.market.unit.repository;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.Order;
 import ru.devinvader.market.repository.OrderRepository;
 
@@ -18,12 +19,14 @@ public class OrderRepositoryTest extends BaseRepositoryTest {
         order.setTotalSum(1000L);
 
         // when
-        Order savedOrder = orderRepository.save(order);
-        Order foundOrder = orderRepository.findById(savedOrder.getId()).orElse(null);
+        Order savedOrder = orderRepository.save(order).block();
 
         // then
-        assertThat(foundOrder).isNotNull();
-        assertThat(foundOrder.getTotalSum()).isEqualTo(1000L);
+        StepVerifier.create(orderRepository.findById(savedOrder.getId()))
+                .assertNext(found -> {
+                    assertThat(found.getTotalSum()).isEqualTo(1000L);
+                })
+                .verifyComplete();
     }
 
     @Test
@@ -31,13 +34,13 @@ public class OrderRepositoryTest extends BaseRepositoryTest {
         // given
         Order order = new Order();
         order.setTotalSum(1000L);
-        Order savedOrder = orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order).block();
 
         // when
-        orderRepository.deleteById(savedOrder.getId());
-        Order foundOrder = orderRepository.findById(savedOrder.getId()).orElse(null);
+        orderRepository.deleteById(savedOrder.getId()).block();
 
         // then
-        assertThat(foundOrder).isNull();
+        StepVerifier.create(orderRepository.findById(savedOrder.getId()))
+                .verifyComplete();
     }
 }

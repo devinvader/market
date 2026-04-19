@@ -8,7 +8,7 @@ import ru.devinvader.market.domain.OrderItem;
 @Component
 public class OrderItemMapper {
 
-    public OrderItem fromDto(Order order, CartItem item) {
-        return new OrderItem(order, item.getItem(), item.getCount());
+    public OrderItem fromDto(Order order, CartItem cartItem) {
+        return new OrderItem(null, order.getId(), cartItem.getItemId(), cartItem.getCount());
     }
 }

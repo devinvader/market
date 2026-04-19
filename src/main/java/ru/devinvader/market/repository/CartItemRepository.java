@@ -1,22 +1,15 @@
 package ru.devinvader.market.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-import ru.devinvader.market.domain.CartItem;
-import ru.devinvader.market.domain.CartItemId;
-
 import java.util.List;
 
-@Repository
-public interface CartItemRepository extends JpaRepository<CartItem, CartItemId> {
-    @Query("SELECT ci FROM CartItem ci WHERE ci.cart.id = :cartId")
-    List<CartItem> findByCartId(@Param("cartId") Long cartId);
-    
-    @Query("SELECT ci FROM CartItem ci WHERE ci.cart.id = :cartId AND ci.item.id = :itemId")
-    CartItem findByCartIdAndItemId(@Param("cartId") Long cartId, @Param("itemId") Long itemId);
-    
-    @Query("SELECT ci FROM CartItem ci WHERE ci.cart.id = :cartId AND ci.item.id IN :itemIds")
-    List<CartItem> findByCartIdAndItemIdIn(@Param("cartId") Long cartId, @Param("itemIds") List<Long> itemIds);
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import ru.devinvader.market.domain.CartItem;
+
+public interface CartItemRepository extends ReactiveCrudRepository<CartItem, Long> {
+    Flux<CartItem> findByCartId(Long cartId);
+    Mono<CartItem> findByCartIdAndItemId(Long cartId, Long itemId);
+    Flux<CartItem> findByCartIdAndItemIdIn(Long cartId, List<Long> itemIds);
+    Mono<Long> deleteByCartId(Long cartId);
 }

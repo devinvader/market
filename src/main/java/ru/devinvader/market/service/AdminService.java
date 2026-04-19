@@ -1,14 +1,13 @@
 package ru.devinvader.market.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Mono;
 import ru.devinvader.market.domain.Item;
 import ru.devinvader.market.mapper.ItemMapper;
 import ru.devinvader.market.repository.ItemRepository;
 import ru.devinvader.market.web.dto.ItemDto;
-
-import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -18,49 +17,55 @@ public class AdminService {
     private final ImageService imageService;
     private final ItemMapper itemMapper;
 
-    public Item findItemById(Long id) {
+    public Mono<Item> findItemById(Long id) {
         return itemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Item not found"));
+                .switchIfEmpty(Mono.error(new RuntimeException("Item not found")));
     }
 
-    public ItemDto getItemDtoById(Long id) {
-        Item item = findItemById(id);
-        return itemMapper.toDto(item, 0);
+    public Mono<ItemDto> getItemDtoById(Long id) {
+        return findItemById(id)
+                .map(item -> itemMapper.toDto(item, 0));
     }
 
-    public Item saveItem(Item item) {
+    public Mono<Item> saveItem(Item item) {
         return itemRepository.save(item);
     }
 
-    public void deleteItemById(Long id) {
-        itemRepository.deleteById(id);
+    public Mono<Void> deleteItemById(Long id) {
+        return itemRepository.deleteById(id);
     }
 
-    public Item createItem(String title, String description, Long price, MultipartFile imageFile) throws IOException {
+    public Mono<Item> createItem(String title, String description, Long price, FilePart imageFile) {
         Item item = new Item();
         item.setTitle(title);
         item.setDescription(description);
         item.setPrice(price);
-        Item savedItem = saveItem(item);
-
-        if (imageFile != null && !imageFile.isEmpty()) {
-            imageService.saveImage(savedItem.getId(), imageFile);
-        }
-
-        return savedItem;
+        return saveItem(item)
+                .flatMap(savedItem -> {
+                    if (imageFile != null && imageFile.filename() != null && !imageFile.filename().isEmpty()) {
+                        return imageService.saveImage(savedItem.getId(), imageFile)
+                                .thenReturn(savedItem);
+                    } else {
+                        return Mono.just(savedItem);
+                    }
+                });
     }
 
-    public Item updateItem(Long id, String title, String description, Long price, MultipartFile imageFile) throws IOException {
-        Item item = findItemById(id);
-        item.setTitle(title);
-        item.setDescription(description);
-        item.setPrice(price);
-        Item savedItem = saveItem(item);
-
-        if (imageFile != null && !imageFile.isEmpty()) {
-            imageService.saveImage(id, imageFile);
-        }
-
-        return savedItem;
+    public Mono<Item> updateItem(Long id, String title, String description, Long price, FilePart imageFile) {
+        return findItemById(id)
+                .flatMap(item -> {
+                    item.setTitle(title);
+                    item.setDescription(description);
+                    item.setPrice(price);
+                    return saveItem(item)
+                            .flatMap(savedItem -> {
+                                if (imageFile != null && imageFile.filename() != null && !imageFile.filename().isEmpty()) {
+                                    return imageService.saveImage(id, imageFile)
+                                            .thenReturn(savedItem);
+                                } else {
+                                    return Mono.just(savedItem);
+                                }
+                            });
+                });
     }
 }

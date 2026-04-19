@@ -1,29 +1,23 @@
 package ru.devinvader.market.domain;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 import lombok.*;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
-@Table(name = "order_items")
-@IdClass(OrderItemId.class)
+@Table("order_items")
 public class OrderItem {
     @Id
-    @ManyToOne
-    @JoinColumn(name = "order_id", nullable = false)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private Order order;
+    private Long id;
 
-    @Id
-    @ManyToOne
-    @JoinColumn(name = "item_id", nullable = false)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private Item item;
+    @Column("order_id")
+    private Long orderId;
 
-    @Column(nullable = false)
+    @Column("item_id")
+    private Long itemId;
+
     private Integer count;
 }

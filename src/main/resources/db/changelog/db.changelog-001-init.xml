@@ -4,7 +4,7 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <!-- Создание таблицы items (добавлена колонка image_id) -->
+    <!-- Создание таблицы items -->
     <changeSet id="001-create-items-table" author="market">
         <createTable tableName="items">
             <column name="id" type="BIGINT" autoIncrement="true">
@@ -22,7 +22,7 @@
         </createTable>
     </changeSet>
 
-    <!-- Создание таблицы orders (без изменений) -->
+    <!-- Создание таблицы orders -->
     <changeSet id="002-create-orders-table" author="market">
         <createTable tableName="orders">
             <column name="id" type="BIGINT" autoIncrement="true">
@@ -34,31 +34,34 @@
         </createTable>
     </changeSet>
 
-    <!-- Создание таблицы order_items (без изменений) -->
+    <!-- Создание таблицы order_items -->
     <changeSet id="003-create-order-items-table" author="market">
         <createTable tableName="order_items">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
             <column name="order_id" type="BIGINT">
                 <constraints nullable="false"
                              foreignKeyName="fk_order_items_order_id"
                              referencedTableName="orders"
-                             referencedColumnNames="id" />
+                             referencedColumnNames="id"/>
             </column>
             <column name="item_id" type="BIGINT">
                 <constraints nullable="false"
                              foreignKeyName="fk_order_items_item_id"
                              referencedTableName="items"
-                             referencedColumnNames="id" />
+                             referencedColumnNames="id"/>
             </column>
             <column name="count" type="INT">
-                <constraints nullable="false" />
+                <constraints nullable="false"/>
             </column>
         </createTable>
-        <addPrimaryKey tableName="order_items"
-                       columnNames="order_id, item_id"
-                       constraintName="pk_order_items" />
+        <addUniqueConstraint tableName="order_items"
+                             columnNames="order_id, item_id"
+                             constraintName="uk_order_items_order_item"/>
     </changeSet>
 
-    <!-- Создание таблицы carts (без изменений) -->
+    <!-- Создание таблицы carts -->
     <changeSet id="004-create-carts-table" author="market">
         <createTable tableName="carts">
             <column name="id" type="BIGINT" autoIncrement="true">
@@ -67,43 +70,45 @@
         </createTable>
     </changeSet>
 
-    <!-- Создание таблицы cart_items (без изменений) -->
+    <!-- Создание таблицы cart_items -->
     <changeSet id="005-create-cart-items-table" author="market">
         <createTable tableName="cart_items">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
             <column name="cart_id" type="BIGINT">
                 <constraints nullable="false"
                              foreignKeyName="fk_cart_items_cart_id"
                              referencedTableName="carts"
-                             referencedColumnNames="id" />
+                             referencedColumnNames="id"/>
             </column>
             <column name="item_id" type="BIGINT">
                 <constraints nullable="false"
                              foreignKeyName="fk_cart_items_item_id"
                              referencedTableName="items"
-                             referencedColumnNames="id" />
+                             referencedColumnNames="id"/>
             </column>
             <column name="count" type="INT">
-                <constraints nullable="false" />
+                <constraints nullable="false"/>
             </column>
         </createTable>
-        <addPrimaryKey tableName="cart_items"
-                       columnNames="cart_id, item_id"
-                       constraintName="pk_cart_items" />
+        <addUniqueConstraint tableName="cart_items"
+                             columnNames="cart_id, item_id"
+                             constraintName="uk_cart_items_cart_item"/>
     </changeSet>
 
-    <!-- Создание таблицы images (БЕЗ колонки item_id) -->
+    <!-- Создание таблицы images -->
     <changeSet id="006-create-images-table" author="market">
         <createTable tableName="images">
             <column name="id" type="BIGINT" autoIncrement="true">
                 <constraints primaryKey="true" nullable="false" />
             </column>
-            <column name="data" type="BLOB">
+            <column name="data" type="BYTEA">
                 <constraints nullable="false" />
             </column>
             <column name="content_type" type="VARCHAR(255)">
                 <constraints nullable="false" />
             </column>
-            <!-- колонка item_id УДАЛЕНА -->
         </createTable>
     </changeSet>
 

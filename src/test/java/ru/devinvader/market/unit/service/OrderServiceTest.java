@@ -2,30 +2,26 @@ package ru.devinvader.market.unit.service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Spy;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.*;
+import ru.devinvader.market.mapper.ItemMapper;
+import ru.devinvader.market.mapper.OrderItemMapper;
 import ru.devinvader.market.repository.CartItemRepository;
-import ru.devinvader.market.repository.CartRepository;
+import ru.devinvader.market.repository.ItemRepository;
 import ru.devinvader.market.repository.OrderItemRepository;
 import ru.devinvader.market.repository.OrderRepository;
-import ru.devinvader.market.domain.*;
-import ru.devinvader.market.mapper.OrderItemMapper;
-import ru.devinvader.market.repository.*;
-import ru.devinvader.market.service.ImageService;
 import ru.devinvader.market.service.OrderService;
 import ru.devinvader.market.web.dto.ItemDto;
 import ru.devinvader.market.web.dto.OrderDto;
-import ru.devinvader.market.mapper.ItemMapper;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,170 +29,211 @@ public class OrderServiceTest {
 
     @Mock
     private OrderRepository orderRepository;
+
     @Mock
     private OrderItemRepository orderItemRepository;
-    @Mock
-    private CartRepository cartRepository;
+
     @Mock
     private CartItemRepository cartItemRepository;
+
     @Mock
-    private ImageService imageService;
-    @Spy
-    private OrderItemMapper orderItemMapper = new OrderItemMapper();
+    private ItemRepository itemRepository;
+
     @Spy
     private ItemMapper itemMapper = new ItemMapper();
+
+    @Spy
+    private OrderItemMapper orderItemMapper = new OrderItemMapper();
+
     @InjectMocks
     private OrderService orderService;
 
     @Captor
     private ArgumentCaptor<Order> orderCaptor;
+
     @Captor
-    private ArgumentCaptor<Iterable<OrderItem>> orderItemCaptor;
+    private ArgumentCaptor<List<OrderItem>> orderItemsCaptor;
 
     @Test
-    void getOrCreateOrders_noOrders_returnsEmptyList() {
+    void getOrders_noOrders_returnsEmptyFlux() {
         // given
-        when(orderRepository.findAll()).thenReturn(List.of());
+        when(orderRepository.findAll()).thenReturn(Flux.empty());
 
         // when
-        List<OrderDto> result = orderService.getOrders();
+        Flux<OrderDto> result = orderService.getOrders();
 
         // then
-        assertTrue(result.isEmpty());
+        StepVerifier.create(result)
+                .expectNextCount(0)
+                .verifyComplete();
         verify(orderRepository).findAll();
         verifyNoInteractions(orderItemRepository);
     }
 
     @Test
-    void getOrders_withOrders_returnsOrCreateOrderDtos() {
-        Order order = new Order();
-        order.setId(1L);
-        order.setTotalSum(5000L);
+    void getOrders_withOrders_returnsOrderDtos() {
+        // given
+        Order order1 = new Order(1L, 5000L);
+        Order order2 = new Order(2L, 3000L);
+        when(orderRepository.findAll()).thenReturn(Flux.just(order1, order2));
+        when(orderRepository.findById(1L)).thenReturn(Mono.just(order1));
+        when(orderRepository.findById(2L)).thenReturn(Mono.just(order2));
 
-        Item item1 = new Item(10L, "Item1", "Desc1", 1000L, null);
-        Item item2 = new Item(20L, "Item2", "Desc2", 2000L, null);
-        OrderItem orderItem1 = new OrderItem(order, item1, 2);
-        OrderItem orderItem2 = new OrderItem(order, item2, 1);
+        // 1 заказ
+        OrderItem orderItem1 = new OrderItem(10L, 1L, 100L, 2);
+        OrderItem orderItem2 = new OrderItem(20L, 1L, 200L, 1);
+        // заказ 2
+        OrderItem orderItem3 = new OrderItem(30L, 2L, 300L, 3);
 
-        when(orderRepository.findAll()).thenReturn(List.of(order));
-        when(orderItemRepository.findByOrderId(1L)).thenReturn(List.of(orderItem1, orderItem2));
+        when(orderItemRepository.findByOrderId(1L)).thenReturn(Flux.just(orderItem1, orderItem2));
+        when(orderItemRepository.findByOrderId(2L)).thenReturn(Flux.just(orderItem3));
+        Item item1 = new Item(100L, "Item 1", "Desc 1", 1000L, null);
+        Item item2 = new Item(200L, "Item 2", "Desc 2", 2000L, null);
+        Item item3 = new Item(300L, "Item 3", "Desc 3", 1500L, null);
+        when(itemRepository.findAllById(List.of(100L, 200L))).thenReturn(Flux.just(item1, item2));
+        when(itemRepository.findAllById(List.of(300L))).thenReturn(Flux.just(item3));
+        ItemDto dto1 = new ItemDto(100L, "Item 1", "Desc 1", 1000L, 2);
+        ItemDto dto2 = new ItemDto(200L, "Item 2", "Desc 2", 2000L, 1);
+        ItemDto dto3 = new ItemDto(300L, "Item 3", "Desc 3", 1500L, 3);
 
-        List<OrderDto> result = orderService.getOrders();
+        // when
+        Flux<OrderDto> result = orderService.getOrders();
 
-        assertEquals(1, result.size());
-        OrderDto dto = result.get(0);
-        assertEquals(1L, dto.id());
-        assertEquals(5000L, dto.totalSum());
-        assertEquals(2, dto.items().size());
-
-        ItemDto dto1 = dto.items().get(0);
-        assertEquals(10L, dto1.id());
-        assertEquals(1000L, dto1.price());
-        assertEquals(2, dto1.count());
-
-        ItemDto dto2 = dto.items().get(1);
-        assertEquals(20L, dto2.id());
-        assertEquals(2000L, dto2.price());
-        assertEquals(1, dto2.count());
+        // then
+        StepVerifier.create(result)
+                .expectNextMatches(dto -> dto.id() == 1L &&
+                        dto.totalSum() == 5000L &&
+                        dto.items().size() == 2 &&
+                        dto.items().contains(dto1) &&
+                        dto.items().contains(dto2))
+                .expectNextMatches(dto -> dto.id() == 2L &&
+                        dto.totalSum() == 3000L &&
+                        dto.items().size() == 1 &&
+                        dto.items().contains(dto3))
+                .verifyComplete();
 
         verify(orderRepository).findAll();
         verify(orderItemRepository).findByOrderId(1L);
+        verify(orderItemRepository).findByOrderId(2L);
+        verify(itemRepository).findAllById(List.of(100L, 200L));
+        verify(itemRepository).findAllById(List.of(300L));
     }
 
     @Test
-    void getOrder_existingOrder_returnsOrCreateOrderDto() {
-        Order order = new Order();
-        order.setId(5L);
-        order.setTotalSum(3000L);
-        Item item = new Item(30L, "Item3", "Desc3", 1500L, null);
-        OrderItem orderItem = new OrderItem(order, item, 2);
+    void getOrCreateOrder_existingOrder_returnsOrderDto() {
+        // given
+        long orderId = 5L;
+        Order order = new Order(orderId, 3000L);
+        OrderItem orderItem = new OrderItem(30L, orderId, 300L, 2);
+        Item item = new Item(300L, "Item 3", "Desc 3", 1500L, null);
+        ItemDto itemDto = new ItemDto(300L, "Item 3", "Desc 3", 1500L, 2);
 
-        when(orderRepository.findById(5L)).thenReturn(Optional.of(order));
-        when(orderItemRepository.findByOrderId(5L)).thenReturn(List.of(orderItem));
+        when(orderRepository.findById(orderId)).thenReturn(Mono.just(order));
+        when(orderItemRepository.findByOrderId(orderId)).thenReturn(Flux.just(orderItem));
+        when(itemRepository.findAllById(List.of(300L))).thenReturn(Flux.just(item));
 
-        OrderDto result = orderService.getOrCreateOrder(5L, false);
+        // when
+        Mono<OrderDto> result = orderService.getOrCreateOrder(orderId, false);
 
-        assertEquals(5L, result.id());
-        assertEquals(3000L, result.totalSum());
-        assertEquals(1, result.items().size());
-        ItemDto dto = result.items().get(0);
-        assertEquals(30L, dto.id());
-        assertEquals(1500L, dto.price());
-        assertEquals(2, dto.count());
+        // then
+        StepVerifier.create(result)
+                .expectNextMatches(dto -> dto.id() == orderId &&
+                        dto.totalSum() == 3000L &&
+                        dto.items().size() == 1 &&
+                        dto.items().get(0).equals(itemDto))
+                .verifyComplete();
 
-        verify(orderRepository).findById(5L);
-        verify(orderItemRepository).findByOrderId(5L);
-        verifyNoInteractions(cartRepository, cartItemRepository);
+        verify(orderRepository).findById(orderId);
+        verify(orderItemRepository).findByOrderId(orderId);
+        verify(itemRepository).findAllById(anyIterable());
     }
 
     @Test
-    void getOrder_existingOrCreateOrderNotFound_throwsException() {
-        when(orderRepository.findById(99L)).thenReturn(Optional.empty());
+    void getOrCreateOrder_existingOrderNotFound_throwsError() {
+        // given
+        long orderId = 99L;
+        when(orderRepository.findById(orderId)).thenReturn(Mono.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> orderService.getOrCreateOrder(99L, false));
-        assertEquals("Order not found", exception.getMessage());
-        verify(orderRepository).findById(99L);
-        verifyNoInteractions(orderItemRepository);
+        // when
+        Mono<OrderDto> result = orderService.getOrCreateOrder(orderId, false);
+
+        // then
+        StepVerifier.create(result)
+                .expectErrorMatches(e ->
+                        e instanceof RuntimeException && e.getMessage().equals("Order not found"))
+                .verify();
+
+        verify(orderRepository).findById(orderId);
     }
 
     @Test
-    void getOrder_newOrder_createsOrCreateOrderFromCart() {
+    void getOrCreateOrder_newOrderWithCartItems_createsOrderAndClearsCart() {
+        // given
         long cartId = 1L;
-        Cart cart = new Cart();
-        cart.setId(cartId);
-        Item item1 = new Item(10L, "Item1", "Desc1", 1000L, null);
-        Item item2 = new Item(20L, "Item2", "Desc2", 2000L, null);
-        CartItem cartItem1 = new CartItem(cart, item1, 3);
-        CartItem cartItem2 = new CartItem(cart, item2, 1);
+        CartItem cartItem1 = new CartItem(1L, cartId, 10L, 3);
+        CartItem cartItem2 = new CartItem(2L, cartId, 20L, 1);
+        Item item1 = new Item(10L, "Item 1", "Desc 1", 1000L, null);
+        Item item2 = new Item(20L, "Item 2", "Desc 2", 2000L, null);
+        Order savedOrder = new Order(100L, 5000L);
+        OrderItem orderItem1 = new OrderItem(null, 100L, 10L, 3);
+        OrderItem orderItem2 = new OrderItem(null, 100L, 20L, 1);
+        ItemDto dto1 = new ItemDto(10L, "Item 1", "Desc 1", 1000L, 3);
+        ItemDto dto2 = new ItemDto(20L, "Item 2", "Desc 2", 2000L, 1);
 
-        when(cartItemRepository.findByCartId(cartId)).thenReturn(List.of(cartItem1, cartItem2));
-        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
-            Order o = inv.getArgument(0);
-            o.setId(100L);
-            return o;
-        });
-        when(orderItemRepository.saveAll(any(Iterable.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(cartItemRepository.findByCartId(cartId)).thenReturn(Flux.just(cartItem1, cartItem2));
+        when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item1, item2));
+        when(orderRepository.save(any(Order.class))).thenReturn(Mono.just(savedOrder));
+        when(orderItemRepository.saveAll(anyList())).thenReturn(Flux.just(orderItem1, orderItem2));
+        when(cartItemRepository.deleteAll(anyList())).thenReturn(Mono.empty());
 
-        OrderDto result = orderService.getOrCreateOrder(cartId, true);
+        // when
+        Mono<OrderDto> result = orderService.getOrCreateOrder(cartId, true);
 
-        assertEquals(100L, result.id());
-        assertEquals(1000 * 3 + 2000, result.totalSum());
-        assertEquals(2, result.items().size());
+        // then
+        StepVerifier.create(result)
+                .expectNextMatches(dto -> dto.id() == 100L &&
+                        dto.totalSum() == 5000L &&
+                        dto.items().size() == 2 &&
+                        dto.items().contains(dto1) &&
+                        dto.items().contains(dto2))
+                .verifyComplete();
+
+        verify(cartItemRepository).findByCartId(cartId);
+        verify(itemRepository, times(2)).findAllById(anyIterable());
+        verify(orderRepository).save(orderCaptor.capture());
+        Order capturedOrder = orderCaptor.getValue();
+        assertEquals(5000L, capturedOrder.getTotalSum());
+
+        verify(orderItemRepository).saveAll(orderItemsCaptor.capture());
+        List<OrderItem> savedOrderItems = orderItemsCaptor.getValue();
+        assertEquals(2, savedOrderItems.size());
+        assertEquals(3, savedOrderItems.get(0).getCount());
+        assertEquals(1, savedOrderItems.get(1).getCount());
 
         verify(cartItemRepository).deleteAll(List.of(cartItem1, cartItem2));
-        verify(orderRepository).save(orderCaptor.capture());
-        assertEquals(5000L, orderCaptor.getValue().getTotalSum());
-
-        verify(orderItemRepository).saveAll(orderItemCaptor.capture());
-        List<OrderItem> savedItems = (List<OrderItem>) orderItemCaptor.getValue();
-        assertEquals(2, savedItems.size());
-        assertEquals(3, savedItems.get(0).getCount());
-        assertEquals(1, savedItems.get(1).getCount());
-
-        verify(cartItemRepository).findByCartId(cartId);
-        verifyNoInteractions(cartRepository);
     }
 
     @Test
-    void getOrder_newOrder_noCartItems_returnsOrCreateOrderWithZeroTotal() {
+    void getOrCreateOrder_newOrderWithEmptyCart_createsEmptyOrder() {
+        // given
         long cartId = 999L;
-        when(cartItemRepository.findByCartId(cartId)).thenReturn(List.of());
-        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
-            Order o = inv.getArgument(0);
-            o.setId(100L);
-            return o;
-        });
+        when(cartItemRepository.findByCartId(cartId)).thenReturn(Flux.empty());
+        Order savedOrder = new Order(100L, 0L);
+        when(orderRepository.save(any(Order.class))).thenReturn(Mono.just(savedOrder));
 
-        OrderDto result = orderService.getOrCreateOrder(cartId, true);
+        // when
+        Mono<OrderDto> result = orderService.getOrCreateOrder(cartId, true);
 
-        assertEquals(100L, result.id());
-        assertEquals(0L, result.totalSum());
-        assertTrue(result.items().isEmpty());
+        // then
+        StepVerifier.create(result)
+                .expectNextMatches(dto -> dto.id() == 100L &&
+                        dto.totalSum() == 0L &&
+                        dto.items().isEmpty())
+                .verifyComplete();
+
         verify(cartItemRepository).findByCartId(cartId);
         verify(orderRepository).save(orderCaptor.capture());
-        assertEquals(0L, orderCaptor.getValue().getTotalSum());
-        verify(orderItemRepository, never()).save(any());
-        verifyNoInteractions(cartRepository, imageService);
+        Order capturedOrder = orderCaptor.getValue();
+        assertEquals(0L, capturedOrder.getTotalSum());
     }
 }
