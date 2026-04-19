@@ -14,6 +14,7 @@ import ru.devinvader.market.web.dto.ActionTypeDto;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
 
 class CartControllerIntegrationTest extends IntegrationBaseTest {
 
@@ -63,7 +64,7 @@ class CartControllerIntegrationTest extends IntegrationBaseTest {
                         .queryParam("action", ActionTypeDto.PLUS.name())
                         .build())
                 .exchange()
-                .expectStatus().isOk();
+                .expectStatus().is3xxRedirection();
 
         // then
         StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
@@ -90,7 +91,7 @@ class CartControllerIntegrationTest extends IntegrationBaseTest {
                         .queryParam("action", ActionTypeDto.MINUS.name())
                         .build())
                 .exchange()
-                .expectStatus().isOk();
+                .expectStatus().is3xxRedirection();
 
         // then
         StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
@@ -113,7 +114,7 @@ class CartControllerIntegrationTest extends IntegrationBaseTest {
                         .queryParam("action", ActionTypeDto.DELETE.name())
                         .build())
                 .exchange()
-                .expectStatus().isOk();
+                .expectStatus().is3xxRedirection();
 
         // then
         StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))

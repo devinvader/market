@@ -41,23 +41,8 @@ public class CartController {
     }
 
     @PostMapping("/cart/items")
-    public Mono<String> actOnItems(
-            @ModelAttribute("item") ItemActionForm item,
-            Model model
-    ) {
-        Mono<List<ItemDto>> itemsMono = cartService.actOnCartItems(item.id(), item.action()).collectList();
-        Mono<Long> totalMono = cartService.getTotal();
-        Mono<Long> balanceMono = paymentClientService.getBalance();
-
-        return Mono.zip(itemsMono, totalMono, balanceMono)
-                .map(tuple -> {
-                    long balance = tuple.getT3();
-                    boolean serviceAvailable = balance != ClientConstants.BALANCE_SERVICE_UNAVAILABLE;
-                    model.addAttribute("items", tuple.getT1());
-                    model.addAttribute("total", tuple.getT2());
-                    model.addAttribute("balance", balance);
-                    model.addAttribute("paymentServiceAvailable", serviceAvailable);
-                    return "cart";
-                });
+    public Mono<String> actOnItems(@ModelAttribute("item") ItemActionForm item) {
+        return cartService.actOnCartItems(item.id(), item.action())
+            .then(Mono.just("redirect:/cart/items"));
     }
 }
