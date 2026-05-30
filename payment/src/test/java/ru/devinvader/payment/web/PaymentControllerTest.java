@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import ru.devinvader.payment.integration.PaymentIntegrationBaseTest;
 import ru.devinvader.payment.service.PaymentService;
@@ -13,10 +14,8 @@ import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicLong;
 
 class PaymentControllerTest extends PaymentIntegrationBaseTest {
-
     @Autowired
-    private WebTestClient webTestClient;
-
+    protected WebTestClient webTestClient;
     @Autowired
     private PaymentService paymentService;
 
@@ -32,21 +31,39 @@ class PaymentControllerTest extends PaymentIntegrationBaseTest {
     }
 
     @Test
-    void getBalance_returnsBalanceJson() {
-        // when
+    void getBalance_withoutToken_returns401() {
         webTestClient.get().uri("/api/payment/balance")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
-        // then
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void pay_withoutToken_returns401() {
+        webTestClient.post().uri("/api/payment/pay")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"amount\": 5000}")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    @WithMockUser(roles = {"BILLING"})
+    void getBalance_returnsBalanceJson() {
+        webTestClient
+                .get().uri("/api/payment/balance")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.balance").isEqualTo(1_000_000);
     }
 
     @Test
+    @WithMockUser(roles = {"BILLING"})
     void pay_sufficientBalance_returnsSuccess() {
-        // when
-        webTestClient.post().uri("/api/payment/pay")
+        webTestClient
+                .post().uri("/api/payment/pay")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"amount\": 5000}")
                 .exchange()
@@ -58,9 +75,10 @@ class PaymentControllerTest extends PaymentIntegrationBaseTest {
     }
 
     @Test
+    @WithMockUser(roles = {"BILLING"})
     void pay_insufficientBalance_returnsFailure() {
-        // given
-        webTestClient.post().uri("/api/payment/pay")
+        webTestClient
+                .post().uri("/api/payment/pay")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"amount\": 900000}")
                 .exchange()
@@ -68,12 +86,12 @@ class PaymentControllerTest extends PaymentIntegrationBaseTest {
                 .expectBody()
                 .jsonPath("$.success").isEqualTo(true)
                 .jsonPath("$.newBalance").isEqualTo(100_000);
-        // when
-        webTestClient.post().uri("/api/payment/pay")
+
+        webTestClient
+                .post().uri("/api/payment/pay")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"amount\": 999999}")
                 .exchange()
-        // then
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.success").isEqualTo(false)
@@ -82,13 +100,13 @@ class PaymentControllerTest extends PaymentIntegrationBaseTest {
     }
 
     @Test
+    @WithMockUser(roles = {"BILLING"})
     void pay_zeroAmount_returnsSuccessWithSameBalance() {
-        // when
-        webTestClient.post().uri("/api/payment/pay")
+        webTestClient
+                .post().uri("/api/payment/pay")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"amount\": 0}")
                 .exchange()
-        // then
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.success").isEqualTo(true)
@@ -97,9 +115,10 @@ class PaymentControllerTest extends PaymentIntegrationBaseTest {
     }
 
     @Test
+    @WithMockUser(roles = {"BILLING"})
     void getBalance_afterPayment_showsUpdatedBalance() {
-        // given 
-        webTestClient.post().uri("/api/payment/pay")
+        webTestClient
+                .post().uri("/api/payment/pay")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"amount\": 100000}")
                 .exchange()
@@ -108,34 +127,38 @@ class PaymentControllerTest extends PaymentIntegrationBaseTest {
                 .jsonPath("$.success").isEqualTo(true)
                 .jsonPath("$.newBalance").isEqualTo(900_000);
 
-        // when
-        webTestClient.get().uri("/api/payment/balance")
+        webTestClient
+                .get().uri("/api/payment/balance")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
-        // then
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.balance").isEqualTo(900_000);
     }
 
     @Test
+    @WithMockUser(roles = {"BILLING"})
     void pay_multiplePayments_accumulativelyDeductBalance() {
-        // given
-        webTestClient.post().uri("/api/payment/pay")
+        webTestClient
+                .post().uri("/api/payment/pay")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"amount\": 100000}")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.newBalance").isEqualTo(900_000);
-        webTestClient.post().uri("/api/payment/pay")
+
+        webTestClient
+                .post().uri("/api/payment/pay")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"amount\": 200000}")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.newBalance").isEqualTo(700_000);
-        webTestClient.post().uri("/api/payment/pay")
+
+        webTestClient
+                .post().uri("/api/payment/pay")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"amount\": 300000}")
                 .exchange()
@@ -143,20 +166,41 @@ class PaymentControllerTest extends PaymentIntegrationBaseTest {
                 .expectBody()
                 .jsonPath("$.newBalance").isEqualTo(400_000);
 
-        // when
-        webTestClient.get().uri("/api/payment/balance")
+        webTestClient
+                .get().uri("/api/payment/balance")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
-        // then
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.balance").isEqualTo(400_000);
     }
 
     @Test
+    @WithMockUser
+    void getBalance_withUnauthorizedClient_returns403() {
+        webTestClient
+                .get().uri("/api/payment/balance")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    @WithMockUser
+    void pay_withUnauthorizedClient_returns403() {
+        webTestClient
+                .post().uri("/api/payment/pay")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"amount\": 5000}")
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    @WithMockUser(roles = {"BILLING"})
     void pay_exactBalance_returnsSuccessWithZeroBalance() {
-        // given
-        webTestClient.post().uri("/api/payment/pay")
+        webTestClient
+                .post().uri("/api/payment/pay")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"amount\": 1000000}")
                 .exchange()
@@ -165,19 +209,19 @@ class PaymentControllerTest extends PaymentIntegrationBaseTest {
                 .jsonPath("$.success").isEqualTo(true)
                 .jsonPath("$.newBalance").isEqualTo(0);
 
-        // when
-        webTestClient.get().uri("/api/payment/balance")
+        webTestClient
+                .get().uri("/api/payment/balance")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.balance").isEqualTo(0);
 
-        webTestClient.post().uri("/api/payment/pay")
+        webTestClient
+                .post().uri("/api/payment/pay")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"amount\": 1}")
                 .exchange()
-        // then
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.success").isEqualTo(false)

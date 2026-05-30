@@ -19,7 +19,29 @@
       "clientAuthenticatorType": "client-secret",
       "secret": "store-secret",
       "redirectUris": [],
-      "webOrigins": []
+      "webOrigins": [],
+      "protocolMappers": [
+        {
+          "name": "payment-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "payment-service",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "billing-role",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "role": "ROLE_BILLING"
+          }
+        }
+      ]
     }
   ],
   "roles": {
@@ -31,6 +53,10 @@
       {
         "name": "ROLE_USER",
         "description": "Роль пользователя"
+      },
+      {
+        "name": "ROLE_BILLING",
+        "description": "Роль для доступа к платежному сервису"
       }
     ]
   },
