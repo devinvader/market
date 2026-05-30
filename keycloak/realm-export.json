@@ -1,0 +1,45 @@
+{
+  "id": "market",
+  "realm": "market",
+  "enabled": true,
+  "displayName": "Realm Market",
+  "sslRequired": "external",
+  "accessTokenLifespan": 300,
+  "accessCodeLifespan": 60,
+  "clients": [
+    {
+      "clientId": "store-client",
+      "enabled": true,
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "store-secret",
+      "redirectUris": [],
+      "webOrigins": []
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "ROLE_ADMIN",
+        "description": "Роль администратора/сервисная"
+      },
+      {
+        "name": "ROLE_USER",
+        "description": "Роль пользователя"
+      }
+    ]
+  },
+  "users": [],
+  "groups": [],
+  "defaultRole": {
+    "name": "default-roles-market"
+  },
+  "eventsListeners": [
+    "jboss-logging"
+  ]
+}
