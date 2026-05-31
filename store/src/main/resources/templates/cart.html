@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="utf-8">
@@ -17,11 +16,13 @@
                     <h2>
                         <span class="badge text-bg-success">Витрина магазина</span>
                     </h2>
-                    <div class="hstack gap-2" sec:authorize="isAuthenticated()">
+                    <div class="hstack gap-2" th:if="${isAuthenticated}">
                         <a href="/orders" class="btn btn-secondary ms-auto bi bi-file-earmark-text"> Заказы</a>
-                        <a href="/logout" class="btn btn-outline-danger">Выйти</a>
+                        <form th:action="@{/logout}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-outline-danger">Выйти</button>
+                        </form>
                     </div>
-                    <div class="ms-auto hstack gap-2" sec:authorize="isAnonymous()">
+                    <div class="ms-auto hstack gap-2" th:unless="${isAuthenticated}">
                         <a href="/login" class="btn btn-primary">Войти</a>
                     </div>
                     <a href="/items" class="btn btn-secondary bi bi-arrow-left-square"> Главная</a>
@@ -56,11 +57,11 @@
                 <div th:if="${!paymentServiceAvailable}" class="alert alert-warning" role="alert">
                     <strong>Сервис платежей недоступен.</strong>
                 </div>
-                <div th:if="${param.paymentError}" class="alert alert-danger" role="alert">
+                <div th:if="${!paymentError.isEmpty()}" class="alert alert-danger" role="alert">
                     <strong>Ошибка оплаты:</strong>
-                    <span th:text="${param.paymentError}"></span>
+                    <span th:text="${paymentError}"></span>
                 </div>
-                <form action="/buy" method="post" th:if="${!items.isEmpty()}">
+                <form th:action="@{/buy}" method="post" th:if="${!items.isEmpty()}">
                     <div class="hstack gap-3">
                         <div>
                             <h2 th:text="'Итого: '+${total}+' руб.'"/>
