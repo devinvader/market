@@ -8,21 +8,24 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import reactor.core.publisher.Mono;
 import ru.devinvader.market.service.OrderService;
+import ru.devinvader.market.utils.CurrentUserProvider;
 
 @Controller
 @RequiredArgsConstructor
 public class OrderController {
 
     private final OrderService orderService;
+    private final CurrentUserProvider currentUserProvider;
 
     @GetMapping("/orders")
     public Mono<String> getOrders(Model model) {
-        return orderService.getOrders()
-                .collectList()
-                .map(orders -> {
-                    model.addAttribute("orders", orders);
-                    return "orders";
-                });
+        return currentUserProvider.getCurrentUserId()
+                .flatMap(userId -> orderService.getOrders(userId)
+                        .collectList()
+                        .map(orders -> {
+                            model.addAttribute("orders", orders);
+                            return "orders";
+                        }));
     }
 
     @GetMapping("/orders/{id}")
@@ -31,11 +34,12 @@ public class OrderController {
             @RequestParam(name = "newOrder", defaultValue = "false") boolean newOrder,
             Model model
     ) {
-        return orderService.getOrCreateOrder(id, newOrder)
-                .map(order -> {
-                    model.addAttribute("order", order);
-                    model.addAttribute("newOrder", newOrder);
-                    return "order";
-                });
+        return currentUserProvider.getCurrentUserId()
+                .flatMap(userId -> orderService.getOrCreateOrder(id, newOrder, userId)
+                        .map(order -> {
+                            model.addAttribute("order", order);
+                            model.addAttribute("newOrder", newOrder);
+                            return "order";
+                        }));
     }
 }
