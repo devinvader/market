@@ -18,14 +18,14 @@ class OrderControllerIntegrationTest extends IntegrationBaseTest {
 
     @Test
     void getOrder_shouldReturnOrderView() {
-        webTestClient.get().uri("/orders/1")
+        webTestClient.get().uri("/orders/100")
                 .exchange()
                 .expectStatus().isOk();
     }
 
     @Test
     void getOrder_withNewOrderFlag_shouldReturnOrderViewWithNewOrderFlag() {
-        webTestClient.get().uri("/orders/1?newOrder=true")
+        webTestClient.get().uri("/orders/100?newOrder=true")
                 .exchange()
                 .expectStatus().isOk();
     }

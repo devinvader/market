@@ -17,6 +17,7 @@ public class OrderRepositoryTest extends BaseRepositoryTest {
         // given
         Order order = new Order();
         order.setTotalSum(1000L);
+        order.setUserId(1L);
 
         // when
         Order savedOrder = orderRepository.save(order).block();
@@ -34,6 +35,7 @@ public class OrderRepositoryTest extends BaseRepositoryTest {
         // given
         Order order = new Order();
         order.setTotalSum(1000L);
+        order.setUserId(1L);
         Order savedOrder = orderRepository.save(order).block();
 
         // when

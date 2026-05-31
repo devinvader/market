@@ -14,7 +14,7 @@ import ru.devinvader.market.web.dto.ActionTypeDto;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.hamcrest.Matchers.equalTo;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 
 class CartControllerIntegrationTest extends IntegrationBaseTest {
 
@@ -53,21 +53,22 @@ class CartControllerIntegrationTest extends IntegrationBaseTest {
     void actOnItems_increaseCount_shouldUpdateCart() {
         // given
         long itemId = 1L;
-        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId).block();
+        CartItem existing = cartItemRepository.findByCartIdAndItemId(100L, itemId).block();
         assertThat(existing, notNullValue());
         int initialCount = existing.getCount();
 
         // when
-        webTestClient.post().uri(uriBuilder -> uriBuilder
+        webTestClient.mutateWith(csrf())
+                .post().uri(uriBuilder -> uriBuilder
                         .path("/cart/items")
                         .queryParam("id", itemId)
                         .queryParam("action", ActionTypeDto.PLUS.name())
                         .build())
                 .exchange()
-                .expectStatus().is3xxRedirection();
+                .expectStatus().isOk();
 
         // then
-        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
+        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(100L, itemId))
                 .assertNext(updated -> {
                     assertThat(updated, notNullValue());
                     assertThat(updated.getCount(), equalTo(initialCount + 1));
@@ -79,22 +80,23 @@ class CartControllerIntegrationTest extends IntegrationBaseTest {
     void actOnItems_decreaseCount_shouldUpdateCart() {
         // given
         long itemId = 1L;
-        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId).block();
+        CartItem existing = cartItemRepository.findByCartIdAndItemId(100L, itemId).block();
         assertThat(existing, notNullValue());
         int initialCount = existing.getCount();
         assertThat(initialCount, greaterThan(0));
 
         // when
-        webTestClient.post().uri(uriBuilder -> uriBuilder
+        webTestClient.mutateWith(csrf())
+                .post().uri(uriBuilder -> uriBuilder
                         .path("/cart/items")
                         .queryParam("id", itemId)
                         .queryParam("action", ActionTypeDto.MINUS.name())
                         .build())
                 .exchange()
-                .expectStatus().is3xxRedirection();
+                .expectStatus().isOk();
 
         // then
-        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
+        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(100L, itemId))
                 .assertNext(updated ->
                         assertThat(updated.getCount(), equalTo(initialCount - 1)))
                 .verifyComplete();
@@ -104,20 +106,21 @@ class CartControllerIntegrationTest extends IntegrationBaseTest {
     void actOnItems_removeAll_shouldDeleteCartItem() {
         // given
         long itemId = 2L;
-        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId).block();
+        CartItem existing = cartItemRepository.findByCartIdAndItemId(100L, itemId).block();
         assertThat(existing, notNullValue());
 
         // when
-        webTestClient.post().uri(uriBuilder -> uriBuilder
+        webTestClient.mutateWith(csrf())
+                .post().uri(uriBuilder -> uriBuilder
                         .path("/cart/items")
                         .queryParam("id", itemId)
                         .queryParam("action", ActionTypeDto.DELETE.name())
                         .build())
                 .exchange()
-                .expectStatus().is3xxRedirection();
+                .expectStatus().isOk();
 
         // then
-        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
+        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(100L, itemId))
                 .expectNextCount(0)
                 .verifyComplete();
     }
@@ -151,7 +154,8 @@ class CartControllerIntegrationTest extends IntegrationBaseTest {
     @Test
     void buy_paymentSuccessful_redirectsToOrder() {
         // when
-        webTestClient.post().uri("/buy")
+        webTestClient.mutateWith(csrf())
+                .post().uri("/buy")
                 .exchange()
         // then
                 .expectStatus().is3xxRedirection()
@@ -168,7 +172,8 @@ class CartControllerIntegrationTest extends IntegrationBaseTest {
                         .withBody("{\"success\": false, \"newBalance\": 100, \"message\": \"Недостаточно средств на счёте\"}")));
 
         // when
-        webTestClient.post().uri("/buy")
+        webTestClient.mutateWith(csrf())
+                .post().uri("/buy")
                 .exchange()
         // then
                 .expectStatus().is3xxRedirection()
@@ -182,7 +187,8 @@ class CartControllerIntegrationTest extends IntegrationBaseTest {
                 .willReturn(aResponse().withStatus(503)));
 
         // when
-        webTestClient.post().uri("/buy")
+        webTestClient.mutateWith(csrf())
+                .post().uri("/buy")
                 .exchange()
         // then
                 .expectStatus().is3xxRedirection()
