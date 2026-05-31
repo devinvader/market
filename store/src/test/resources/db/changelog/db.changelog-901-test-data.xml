@@ -5,13 +5,29 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <!-- Добавление тестовых товаров (без img_path) -->
+    <!-- добавление тестовых пользователей -->
+    <changeSet id="000-insert-test-users" author="market">
+        <insert tableName="users">
+            <column name="id" value="100"/>
+            <column name="username" value="testuser"/>
+            <!-- так же, пароль password сформированный при помощи bcrypt-->
+            <column name="password" value="$2a$10$SEcY8Mb1FhE4KDzS4.xIROES/XSa524NEN8etQWk9xdG09jGpxFcu"/>
+            <column name="role" value="ROLE_USER"/>
+        </insert>
+        <insert tableName="users">
+            <column name="id" value="101"/>
+            <column name="username" value="user"/>
+            <column name="password" value="$2a$10$SEcY8Mb1FhE4KDzS4.xIROES/XSa524NEN8etQWk9xdG09jGpxFcu"/>
+            <column name="role" value="ROLE_USER"/>
+        </insert>
+    </changeSet>
+
+    <!-- Добавление тестовых товаров -->
     <changeSet id="001-insert-test-items" author="market">
         <insert tableName="items">
             <column name="title" value="Товар 1"/>
             <column name="description" value="Описание товара 1"/>
             <column name="price" value="100"/>
-            <!-- image_id пока NULL, заполним позже -->
         </insert>
         <insert tableName="items">
             <column name="title" value="Товар 2"/>
@@ -25,49 +41,52 @@
         </insert>
     </changeSet>
 
-    <!-- Добавление тестовой корзины (без изменений) -->
+    <!-- Добавление тестовой корзины -->
     <changeSet id="002-insert-test-cart" author="market">
         <insert tableName="carts">
-            <column name="id" value="1"/>
+            <column name="id" value="100"/>
+            <column name="user_id" value="100"/>
         </insert>
     </changeSet>
 
-    <!-- Добавление товаров в корзину (без изменений) -->
+    <!-- Добавление товаров в корзину -->
     <changeSet id="003-insert-test-cart-items" author="market">
         <insert tableName="cart_items">
-            <column name="cart_id" value="1"/>
+            <column name="cart_id" value="100"/>
             <column name="item_id" value="1"/>
             <column name="count" value="2"/>
         </insert>
         <insert tableName="cart_items">
-            <column name="cart_id" value="1"/>
+            <column name="cart_id" value="100"/>
             <column name="item_id" value="2"/>
             <column name="count" value="1"/>
         </insert>
     </changeSet>
 
-    <!-- Добавление тестового заказа (без изменений) -->
+    <!-- Добавление тестового заказа -->
     <changeSet id="004-insert-test-order" author="market">
         <insert tableName="orders">
+            <column name="id" value="100"/>
             <column name="total_sum" value="400"/>
+            <column name="user_id" value="100"/>
         </insert>
     </changeSet>
 
-    <!-- Добавление товаров в заказ (без изменений) -->
+    <!-- Добавление товаров в заказ -->
     <changeSet id="005-insert-test-order-items" author="market">
         <insert tableName="order_items">
-            <column name="order_id" value="1"/>
+            <column name="order_id" value="100"/>
             <column name="item_id" value="1"/>
             <column name="count" value="2"/>
         </insert>
         <insert tableName="order_items">
-            <column name="order_id" value="1"/>
+            <column name="order_id" value="100"/>
             <column name="item_id" value="2"/>
             <column name="count" value="1"/>
         </insert>
     </changeSet>
 
-    <!-- Добавление тестовых изображений (SQL т.к. что-то не получалось через ликвид) -->
+    <!-- Добавление тестовых изображений -->
     <changeSet id="006-insert-test-images" author="market">
         <sql>
             INSERT INTO images (data, content_type) VALUES
@@ -91,6 +110,15 @@
             <column name="image_id" value="3"/>
             <where>id = 3</where>
         </update>
+    </changeSet>
+
+    <!-- Исправление SEQUENCE после вставок -->
+    <changeSet id="008-fix-sequences" author="market">
+        <sql>
+            SELECT setval('carts_id_seq', GREATEST(100, (SELECT COALESCE(MAX(id), 1) FROM carts)));
+            SELECT setval('orders_id_seq', GREATEST(100, (SELECT COALESCE(MAX(id), 1) FROM orders)));
+            SELECT setval('users_id_seq', GREATEST(101, (SELECT COALESCE(MAX(id), 1) FROM users)));
+        </sql>
     </changeSet>
 
 </databaseChangeLog>

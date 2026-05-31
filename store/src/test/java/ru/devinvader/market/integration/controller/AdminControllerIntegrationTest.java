@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -13,7 +14,9 @@ import ru.devinvader.market.repository.ItemRepository;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 
+@WithMockMarketUser(role = "ADMIN")
 class AdminControllerIntegrationTest extends IntegrationBaseTest {
 
     @Autowired
@@ -51,7 +54,8 @@ class AdminControllerIntegrationTest extends IntegrationBaseTest {
         multipartData.add("price", price.toString());
 
         // when
-        webTestClient.post().uri("/admin/items")
+        webTestClient.mutateWith(csrf())
+                .post().uri("/admin/items")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(multipartData))
                 .exchange()
@@ -68,7 +72,7 @@ class AdminControllerIntegrationTest extends IntegrationBaseTest {
                         .collectList())
                 .assertNext(items -> {
                     assertThat(items.size(), is(1));
-                    Item savedItem = items.get(0);
+                    Item savedItem = items.getFirst();
                     assertThat(savedItem.getDescription(), equalTo(description));
                     assertThat(savedItem.getPrice(), equalTo(price));
                 })
@@ -95,7 +99,8 @@ class AdminControllerIntegrationTest extends IntegrationBaseTest {
         multipartData.add("price", String.valueOf(price));
 
         // when
-        webTestClient.post().uri("/admin/items")
+        webTestClient.mutateWith(csrf())
+                .post().uri("/admin/items")
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(multipartData))
                 .exchange()
@@ -154,7 +159,8 @@ class AdminControllerIntegrationTest extends IntegrationBaseTest {
         multipartData.add("description", newDescription);
         multipartData.add("price", newPrice.toString());
         // when
-        webTestClient.post().uri("/admin/items/{id}", saved.getId())
+        webTestClient.mutateWith(csrf())
+                .post().uri("/admin/items/{id}", saved.getId())
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .body(BodyInserters.fromMultipartData(multipartData))
                 .exchange()
@@ -181,7 +187,8 @@ class AdminControllerIntegrationTest extends IntegrationBaseTest {
 
         Item saved = itemRepository.save(item).block();
         // when
-        webTestClient.post().uri("/admin/items/{id}/delete", saved.getId())
+        webTestClient.mutateWith(csrf())
+                .post().uri("/admin/items/{id}/delete", saved.getId())
                 .exchange()
         // then
                 .expectStatus().is3xxRedirection()

@@ -17,15 +17,14 @@ public class OrderRepositoryTest extends BaseRepositoryTest {
         // given
         Order order = new Order();
         order.setTotalSum(1000L);
+        order.setUserId(1L);
 
         // when
         Order savedOrder = orderRepository.save(order).block();
 
         // then
         StepVerifier.create(orderRepository.findById(savedOrder.getId()))
-                .assertNext(found -> {
-                    assertThat(found.getTotalSum()).isEqualTo(1000L);
-                })
+                .assertNext(found -> assertThat(found.getTotalSum()).isEqualTo(1000L))
                 .verifyComplete();
     }
 
@@ -34,6 +33,7 @@ public class OrderRepositoryTest extends BaseRepositoryTest {
         // given
         Order order = new Order();
         order.setTotalSum(1000L);
+        order.setUserId(1L);
         Order savedOrder = orderRepository.save(order).block();
 
         // when

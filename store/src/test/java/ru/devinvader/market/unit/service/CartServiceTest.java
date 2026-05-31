@@ -49,42 +49,44 @@ public class CartServiceTest {
     @Captor
     private ArgumentCaptor<CartItem> cartItemCaptor;
 
-    private final long DEFAULT_CART_ID = 1L;
+    private final Long USER_ID = 1L;
 
     @Test
     void getUserCart_givenCartExists_returnsExistingCart() {
         // given
         Cart existingCart = new Cart();
-        existingCart.setId(DEFAULT_CART_ID);
-        when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(existingCart));
+        existingCart.setId(1L);
+        existingCart.setUserId(USER_ID);
+        when(cartRepository.findByUserId(USER_ID)).thenReturn(Mono.just(existingCart));
 
         // when
-        Mono<Cart> result = cartService.getUserCart();
+        Mono<Cart> result = cartService.getUserCart(USER_ID);
 
         // then
         StepVerifier.create(result)
                 .expectNext(existingCart)
                 .verifyComplete();
-        verify(cartRepository).findById(DEFAULT_CART_ID);
+        verify(cartRepository).findByUserId(USER_ID);
         verify(cartRepository, never()).save(any());
     }
 
     @Test
     void getUserCart_givenCartNotExists_createsAndReturnsNewCart() {
         // given
-        when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.empty());
+        when(cartRepository.findByUserId(USER_ID)).thenReturn(Mono.empty());
         Cart newCart = new Cart();
-        newCart.setId(DEFAULT_CART_ID);
+        newCart.setId(1L);
+        newCart.setUserId(USER_ID);
         when(cartRepository.save(any(Cart.class))).thenReturn(Mono.just(newCart));
 
         // when
-        Mono<Cart> result = cartService.getUserCart();
+        Mono<Cart> result = cartService.getUserCart(USER_ID);
 
         // then
         StepVerifier.create(result)
-                .expectNextMatches(cart -> cart.getId() == DEFAULT_CART_ID)
+                .expectNextMatches(cart -> cart.getId() == 1L)
                 .verifyComplete();
-        verify(cartRepository).findById(DEFAULT_CART_ID);
+        verify(cartRepository).findByUserId(USER_ID);
         verify(cartRepository).save(cartCaptor.capture());
     }
 
@@ -92,20 +94,21 @@ public class CartServiceTest {
     void getCartItems_givenEmptyCart_returnsEmptyFlux() {
         // given
         Cart cart = new Cart();
-        cart.setId(DEFAULT_CART_ID);
-        when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
-        when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.empty());
+        cart.setId(1L);
+        cart.setUserId(USER_ID);
+        when(cartRepository.findByUserId(USER_ID)).thenReturn(Mono.just(cart));
+        when(cartItemRepository.findByCartId(1L)).thenReturn(Flux.empty());
         when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.empty());
 
         // when
-        Flux<ItemDto> result = cartService.getCartItems();
+        Flux<ItemDto> result = cartService.getCartItems(USER_ID);
 
         // then
         StepVerifier.create(result)
                 .expectNextCount(0)
                 .verifyComplete();
-        verify(cartRepository).findById(DEFAULT_CART_ID);
-        verify(cartItemRepository).findByCartId(DEFAULT_CART_ID);
+        verify(cartRepository).findByUserId(USER_ID);
+        verify(cartItemRepository).findByCartId(1L);
         verify(itemRepository).findAllById(anyIterable());
     }
 
@@ -113,28 +116,29 @@ public class CartServiceTest {
     void getCartItems_givenItems_returnsItemDtos() {
         // given
         Cart cart = new Cart();
-        cart.setId(DEFAULT_CART_ID);
+        cart.setId(1L);
+        cart.setUserId(USER_ID);
         Item item1 = new Item(10L, "Item1", "Desc1", 1000L, null);
         Item item2 = new Item(20L, "Item2", "Desc2", 500L, null);
-        CartItem cartItem1 = new CartItem(1L, DEFAULT_CART_ID, 10L, 2);
-        CartItem cartItem2 = new CartItem(2L, DEFAULT_CART_ID, 20L, 3);
+        CartItem cartItem1 = new CartItem(1L, 1L, 10L, 2);
+        CartItem cartItem2 = new CartItem(2L, 1L, 20L, 3);
         ItemDto dto1 = new ItemDto(10L, "Item1", "Desc1", 1000L, 2);
         ItemDto dto2 = new ItemDto(20L, "Item2", "Desc2", 500L, 3);
 
-        when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
-        when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.just(cartItem1, cartItem2));
+        when(cartRepository.findByUserId(USER_ID)).thenReturn(Mono.just(cart));
+        when(cartItemRepository.findByCartId(1L)).thenReturn(Flux.just(cartItem1, cartItem2));
         when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item1, item2));
 
         // when
-        Flux<ItemDto> result = cartService.getCartItems();
+        Flux<ItemDto> result = cartService.getCartItems(USER_ID);
 
         // then
         StepVerifier.create(result)
                 .expectNext(dto1)
                 .expectNext(dto2)
                 .verifyComplete();
-        verify(cartRepository).findById(DEFAULT_CART_ID);
-        verify(cartItemRepository).findByCartId(DEFAULT_CART_ID);
+        verify(cartRepository).findByUserId(USER_ID);
+        verify(cartItemRepository).findByCartId(1L);
         verify(itemRepository).findAllById(anyIterable());
     }
 
@@ -142,13 +146,14 @@ public class CartServiceTest {
     void getTotal_givenEmptyCart_returnsZero() {
         // given
         Cart cart = new Cart();
-        cart.setId(DEFAULT_CART_ID);
-        when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
-        when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.empty());
+        cart.setId(1L);
+        cart.setUserId(USER_ID);
+        when(cartRepository.findByUserId(USER_ID)).thenReturn(Mono.just(cart));
+        when(cartItemRepository.findByCartId(1L)).thenReturn(Flux.empty());
         when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.empty());
 
         // when
-        Mono<Long> result = cartService.getTotal();
+        Mono<Long> result = cartService.getTotal(USER_ID);
 
         // then
         StepVerifier.create(result)
@@ -160,18 +165,19 @@ public class CartServiceTest {
     void getTotal_givenItems_returnsCorrectSum() {
         // given
         Cart cart = new Cart();
-        cart.setId(DEFAULT_CART_ID);
+        cart.setId(1L);
+        cart.setUserId(USER_ID);
         Item item1 = new Item(10L, "Item1", "Desc1", 1000L, null);
         Item item2 = new Item(20L, "Item2", "Desc2", 500L, null);
-        CartItem cartItem1 = new CartItem(1L, DEFAULT_CART_ID, 10L, 2);
-        CartItem cartItem2 = new CartItem(2L, DEFAULT_CART_ID, 20L, 3);
+        CartItem cartItem1 = new CartItem(1L, 1L, 10L, 2);
+        CartItem cartItem2 = new CartItem(2L, 1L, 20L, 3);
 
-        when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
-        when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.just(cartItem1, cartItem2));
+        when(cartRepository.findByUserId(USER_ID)).thenReturn(Mono.just(cart));
+        when(cartItemRepository.findByCartId(1L)).thenReturn(Flux.just(cartItem1, cartItem2));
         when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item1, item2));
 
         // when
-        Mono<Long> result = cartService.getTotal();
+        Mono<Long> result = cartService.getTotal(USER_ID);
 
         // then
         StepVerifier.create(result)
@@ -183,14 +189,15 @@ public class CartServiceTest {
     void getItemCounts_givenEmptyCart_returnsZeroForAllIds() {
         // given
         Cart cart = new Cart();
-        cart.setId(DEFAULT_CART_ID);
+        cart.setId(1L);
+        cart.setUserId(USER_ID);
         List<Long> itemIds = List.of(10L, 20L, 30L);
-        when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
-        when(cartItemRepository.findByCartIdAndItemIdIn(DEFAULT_CART_ID, itemIds))
+        when(cartRepository.findByUserId(USER_ID)).thenReturn(Mono.just(cart));
+        when(cartItemRepository.findByCartIdAndItemIdIn(1L, itemIds))
                 .thenReturn(Flux.empty());
 
         // when
-        Mono<Map<Long, Integer>> result = cartService.getItemCounts(itemIds);
+        Mono<Map<Long, Integer>> result = cartService.getItemCounts(USER_ID, itemIds);
 
         // then
         StepVerifier.create(result)
@@ -200,24 +207,25 @@ public class CartServiceTest {
                     assertEquals(0, map.getOrDefault(30L, 0));
                 })
                 .verifyComplete();
-        verify(cartRepository).findById(DEFAULT_CART_ID);
-        verify(cartItemRepository).findByCartIdAndItemIdIn(DEFAULT_CART_ID, itemIds);
+        verify(cartRepository).findByUserId(USER_ID);
+        verify(cartItemRepository).findByCartIdAndItemIdIn(1L, itemIds);
     }
 
     @Test
     void getItemCounts_givenItems_returnsCorrectCounts() {
         // given
         Cart cart = new Cart();
-        cart.setId(DEFAULT_CART_ID);
-        CartItem cartItem1 = new CartItem(1L, DEFAULT_CART_ID, 10L, 2);
-        CartItem cartItem2 = new CartItem(2L, DEFAULT_CART_ID, 20L, 5);
+        cart.setId(1L);
+        cart.setUserId(USER_ID);
+        CartItem cartItem1 = new CartItem(1L, 1L, 10L, 2);
+        CartItem cartItem2 = new CartItem(2L, 1L, 20L, 5);
         List<Long> itemIds = List.of(10L, 20L, 30L);
-        when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
-        when(cartItemRepository.findByCartIdAndItemIdIn(DEFAULT_CART_ID, itemIds))
+        when(cartRepository.findByUserId(USER_ID)).thenReturn(Mono.just(cart));
+        when(cartItemRepository.findByCartIdAndItemIdIn(1L, itemIds))
                 .thenReturn(Flux.just(cartItem1, cartItem2));
 
         // when
-        Mono<Map<Long, Integer>> result = cartService.getItemCounts(itemIds);
+        Mono<Map<Long, Integer>> result = cartService.getItemCounts(USER_ID, itemIds);
 
         // then
         StepVerifier.create(result)
@@ -233,20 +241,21 @@ public class CartServiceTest {
     void actOnCartItems_givenNewItemAndPlusAction_addsItem() {
         // given
         Cart cart = new Cart();
-        cart.setId(DEFAULT_CART_ID);
+        cart.setId(1L);
+        cart.setUserId(USER_ID);
         Item item = new Item(10L, "Item1", "Desc1", 1000L, null);
-        CartItem savedCartItem = new CartItem(1L, DEFAULT_CART_ID, 10L, 1);
+        CartItem savedCartItem = new CartItem(1L, 1L, 10L, 1);
         ItemDto dto = new ItemDto(10L, "Item1", "Desc1", 1000L, 1);
 
-        when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
-        when(cartItemRepository.findByCartIdAndItemId(DEFAULT_CART_ID, 10L))
+        when(cartRepository.findByUserId(USER_ID)).thenReturn(Mono.just(cart));
+        when(cartItemRepository.findByCartIdAndItemId(1L, 10L))
                 .thenReturn(Mono.empty());
         when(cartItemRepository.save(any(CartItem.class))).thenReturn(Mono.just(savedCartItem));
-        when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.just(savedCartItem));
+        when(cartItemRepository.findByCartId(1L)).thenReturn(Flux.just(savedCartItem));
         when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item));
 
         // when
-        Flux<ItemDto> result = cartService.actOnCartItems(10L, ActionTypeDto.PLUS);
+        Flux<ItemDto> result = cartService.actOnCartItems(USER_ID, 10L, ActionTypeDto.PLUS);
 
         // then
         StepVerifier.create(result)
@@ -255,7 +264,7 @@ public class CartServiceTest {
 
         verify(cartItemRepository).save(cartItemCaptor.capture());
         CartItem captured = cartItemCaptor.getValue();
-        assertEquals(DEFAULT_CART_ID, captured.getCartId());
+        assertEquals(1L, captured.getCartId());
         assertEquals(10L, captured.getItemId());
         assertEquals(1, captured.getCount());
     }
@@ -264,20 +273,21 @@ public class CartServiceTest {
     void actOnCartItems_givenExistingItemAndPlusAction_increasesCount() {
         // given
         Cart cart = new Cart();
-        cart.setId(DEFAULT_CART_ID);
-        CartItem existing = new CartItem(1L, DEFAULT_CART_ID, 10L, 2);
+        cart.setId(1L);
+        cart.setUserId(USER_ID);
+        CartItem existing = new CartItem(1L, 1L, 10L, 2);
         Item item = new Item(10L, "Item1", "Desc1", 1000L, null);
         ItemDto dto = new ItemDto(10L, "Item1", "Desc1", 1000L, 3);
 
-        when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
-        when(cartItemRepository.findByCartIdAndItemId(DEFAULT_CART_ID, 10L))
+        when(cartRepository.findByUserId(USER_ID)).thenReturn(Mono.just(cart));
+        when(cartItemRepository.findByCartIdAndItemId(1L, 10L))
                 .thenReturn(Mono.just(existing));
         when(cartItemRepository.save(existing)).thenReturn(Mono.just(existing));
-        when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.just(existing));
+        when(cartItemRepository.findByCartId(1L)).thenReturn(Flux.just(existing));
         when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item));
 
         // when
-        Flux<ItemDto> result = cartService.actOnCartItems(10L, ActionTypeDto.PLUS);
+        Flux<ItemDto> result = cartService.actOnCartItems(USER_ID, 10L, ActionTypeDto.PLUS);
 
         // then
         StepVerifier.create(result)
@@ -292,20 +302,21 @@ public class CartServiceTest {
     void actOnCartItems_givenCountMoreThanOneAndMinusAction_decreasesCount() {
         // given
         Cart cart = new Cart();
-        cart.setId(DEFAULT_CART_ID);
-        CartItem existing = new CartItem(1L, DEFAULT_CART_ID, 10L, 2);
+        cart.setId(1L);
+        cart.setUserId(USER_ID);
+        CartItem existing = new CartItem(1L, 1L, 10L, 2);
         Item item = new Item(10L, "Item1", "Desc1", 1000L, null);
         ItemDto dto = new ItemDto(10L, "Item1", "Desc1", 1000L, 1);
 
-        when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
-        when(cartItemRepository.findByCartIdAndItemId(DEFAULT_CART_ID, 10L))
+        when(cartRepository.findByUserId(USER_ID)).thenReturn(Mono.just(cart));
+        when(cartItemRepository.findByCartIdAndItemId(1L, 10L))
                 .thenReturn(Mono.just(existing));
         when(cartItemRepository.save(existing)).thenReturn(Mono.just(existing));
-        when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.just(existing));
+        when(cartItemRepository.findByCartId(1L)).thenReturn(Flux.just(existing));
         when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item));
 
         // when
-        Flux<ItemDto> result = cartService.actOnCartItems(10L, ActionTypeDto.MINUS);
+        Flux<ItemDto> result = cartService.actOnCartItems(USER_ID, 10L, ActionTypeDto.MINUS);
 
         // then
         StepVerifier.create(result)
@@ -321,18 +332,19 @@ public class CartServiceTest {
     void actOnCartItems_givenCountEqualsOneAndMinusAction_deletesItem() {
         // given
         Cart cart = new Cart();
-        cart.setId(DEFAULT_CART_ID);
-        CartItem existing = new CartItem(1L, DEFAULT_CART_ID, 10L, 1);
+        cart.setId(1L);
+        cart.setUserId(USER_ID);
+        CartItem existing = new CartItem(1L, 1L, 10L, 1);
         Item item = new Item(10L, "Item 1", "Desc 1", 1000L, null);
-        when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
-        when(cartItemRepository.findByCartIdAndItemId(DEFAULT_CART_ID, 10L))
+        when(cartRepository.findByUserId(USER_ID)).thenReturn(Mono.just(cart));
+        when(cartItemRepository.findByCartIdAndItemId(1L, 10L))
                 .thenReturn(Mono.just(existing));
         when(cartItemRepository.delete(existing)).thenReturn(Mono.empty());
-        when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.empty());
+        when(cartItemRepository.findByCartId(1L)).thenReturn(Flux.empty());
         when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item));
 
         // when
-        Flux<ItemDto> result = cartService.actOnCartItems(10L, ActionTypeDto.MINUS);
+        Flux<ItemDto> result = cartService.actOnCartItems(USER_ID, 10L, ActionTypeDto.MINUS);
 
         // then
         StepVerifier.create(result)
@@ -346,17 +358,18 @@ public class CartServiceTest {
     void actOnCartItems_givenItemNotExistsAndMinusAction_doesNothing() {
         // given
         Cart cart = new Cart();
-        cart.setId(DEFAULT_CART_ID);
+        cart.setId(1L);
+        cart.setUserId(USER_ID);
         Item item = new Item(10L, "Item 1", "Desc 1", 1000L, null);
-        when(cartRepository.findById(DEFAULT_CART_ID)).thenReturn(Mono.just(cart));
-        when(cartItemRepository.findByCartIdAndItemId(DEFAULT_CART_ID, 10L))
+        when(cartRepository.findByUserId(USER_ID)).thenReturn(Mono.just(cart));
+        when(cartItemRepository.findByCartIdAndItemId(1L, 10L))
                 .thenReturn(Mono.empty());
-        when(cartItemRepository.findByCartId(DEFAULT_CART_ID)).thenReturn(Flux.empty());
+        when(cartItemRepository.findByCartId(1L)).thenReturn(Flux.empty());
         when(itemRepository.findAllById(anyIterable())).thenReturn(Flux.just(item));
         when(cartItemRepository.delete(any(CartItem.class))).thenReturn(Mono.empty());
 
         // when
-        Flux<ItemDto> result = cartService.actOnCartItems(10L, ActionTypeDto.MINUS);
+        Flux<ItemDto> result = cartService.actOnCartItems(USER_ID, 10L, ActionTypeDto.MINUS);
 
         // then
         StepVerifier.create(result)

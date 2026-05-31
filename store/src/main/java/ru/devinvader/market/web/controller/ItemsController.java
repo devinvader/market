@@ -12,9 +12,14 @@ import reactor.core.publisher.Mono;
 import ru.devinvader.market.service.CartService;
 import ru.devinvader.market.service.ItemsService;
 import ru.devinvader.market.service.PaymentClientService;
+import ru.devinvader.market.utils.CurrentUserProvider;
 import ru.devinvader.market.web.dto.SortTypeDto;
 import ru.devinvader.market.web.dto.ItemsActionDto;
 import ru.devinvader.market.web.dto.ItemActionDto;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 @Controller
 @RequiredArgsConstructor
@@ -23,6 +28,7 @@ public class ItemsController {
     private final ItemsService itemsService;
     private final CartService cartService;
     private final PaymentClientService paymentClientService;
+    private final CurrentUserProvider currentUserProvider;
 
     @GetMapping(path = {"/", "/items"})
     public Mono<String> getItems(
@@ -32,14 +38,18 @@ public class ItemsController {
             @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer size,
             Model model
     ) {
-        return itemsService.getItems(search, sortType, page, size)
-                .map(pagedItems -> {
-                    model.addAttribute("search", search);
-                    model.addAttribute("sort", sortType.name());
-                    model.addAttribute("paging", pagedItems.pagingDto());
-                    model.addAttribute("items", pagedItems.items());
-                    return "items";
-                });
+        return currentUserProvider.getCurrentUserId()
+                .map(Optional::of)
+                .defaultIfEmpty(Optional.empty())
+                .flatMap(userIdOpt -> itemsService.getItems(search, sortType, page, size, userIdOpt.orElse(null))
+                        .map(pagedItems -> {
+                            model.addAttribute("isAuthenticated", userIdOpt.isPresent());
+                            model.addAttribute("search", search);
+                            model.addAttribute("sort", sortType.name());
+                            model.addAttribute("paging", pagedItems.pagingDto());
+                            model.addAttribute("items", pagedItems.items());
+                            return "items";
+                        }));
     }
 
     @PostMapping("/items")
@@ -48,7 +58,8 @@ public class ItemsController {
         SortTypeDto sort = dto.sort() != null ? dto.sort() : SortTypeDto.NO;
         int pageNumber = dto.pageNumber() != null ? dto.pageNumber() : 0;
         int pageSize = dto.pageSize() != null ? dto.pageSize() : 10;
-        return cartService.actOnCartItems(dto.id(), dto.action())
+        return currentUserProvider.getCurrentUserId()
+                .flatMapMany(userId -> cartService.actOnCartItems(userId, dto.id(), dto.action()))
                 .then(Mono.just("redirect:/items"))
                 .map(redirect -> redirect + "?search=" + search + "&sort=" + sort.name() +
                         "&pageNumber=" + pageNumber + "&pageSize=" + pageSize);
@@ -59,11 +70,15 @@ public class ItemsController {
             @PathVariable(name = "id") long id,
             Model model
     ) {
-        return itemsService.getItem(id)
-                .map(item -> {
-                    model.addAttribute("item", item);
-                    return "item";
-                });
+        return currentUserProvider.getCurrentUserId()
+                .map(Optional::of)
+                .defaultIfEmpty(Optional.empty())
+                .flatMap(userIdOpt -> itemsService.getItem(id, userIdOpt.orElse(null))
+                        .map(item -> {
+                            model.addAttribute("isAuthenticated", userIdOpt.isPresent());
+                            model.addAttribute("item", item);
+                            return "item";
+                        }));
     }
 
     @PostMapping("/items/{id}")
@@ -71,7 +86,8 @@ public class ItemsController {
             @PathVariable(name = "id") long id,
             @ModelAttribute ItemActionDto dto
     ) {
-        return cartService.actOnCartItems(id, dto.action())
+        return currentUserProvider.getCurrentUserId()
+                .flatMapMany(userId -> cartService.actOnCartItems(userId, id, dto.action()))
                 .then(Mono.just("redirect:/items/" + id));
     }
 
@@ -84,20 +100,22 @@ public class ItemsController {
      */
     @PostMapping("/buy")
     public Mono<String> buyItems() {
-        return cartService.getUserCart()
-                .flatMap(cart -> cartService.getTotal()
-                        .flatMap(total -> paymentClientService.pay(total)
-                                .map(paymentResponse -> {
-                                    if (paymentResponse.success()) {
-                                        return "redirect:/orders/" + cart.getId() + "?newOrder=true";
-                                    } else {
-                                        String msg = paymentResponse.message() != null
-                                                ? paymentResponse.message()
-                                                : "Ошибка оплаты";
-                                        return "redirect:/cart/items?paymentError=" +
-                                                java.net.URLEncoder.encode(msg, java.nio.charset.StandardCharsets.UTF_8);
-                                    }
-                                })
+        return currentUserProvider.getCurrentUserId()
+                .flatMap(userId -> cartService.getUserCart(userId)
+                        .flatMap(cart -> cartService.getTotal(userId)
+                                .flatMap(total -> paymentClientService.pay(total)
+                                        .map(paymentResponse -> {
+                                            if (paymentResponse.success()) {
+                                                return "redirect:/orders/" + cart.getId() + "?newOrder=true";
+                                            } else {
+                                                String msg = paymentResponse.message() != null
+                                                        ? paymentResponse.message()
+                                                        : "Ошибка оплаты";
+                                                return "redirect:/cart/items?paymentError=" +
+                                                        URLEncoder.encode(msg, StandardCharsets.UTF_8);
+                                            }
+                                        })
+                                )
                         )
                 );
     }

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="001-create-users-table" author="market">
+        <createTable tableName="users">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="username" type="VARCHAR(255)">
+                <constraints unique="true" nullable="false"/>
+            </column>
+            <column name="password" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="role" type="VARCHAR(50)" defaultValue="ROLE_USER">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="002-add-user_id-to-carts" author="market">
+        <addColumn tableName="carts">
+            <column name="user_id" type="BIGINT">
+                <constraints
+                        foreignKeyName="fk_carts_user"
+                        references="users(id)"
+                        unique="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="003-add-user_id-to-orders" author="market">
+        <addColumn tableName="orders">
+            <column name="user_id" type="BIGINT">
+                <constraints foreignKeyName="fk_orders_user" references="users(id)"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="004-instert-default-users" author="market">
+        <insert tableName="users">
+            <column name="username" value="customer"/>
+            <!-- bcrypt пароль "password" -->
+            <column name="password" value="$2a$10$SEcY8Mb1FhE4KDzS4.xIROES/XSa524NEN8etQWk9xdG09jGpxFcu"/>
+            <column name="role" value="ROLE_USER"/>
+        </insert>
+        <insert tableName="users">
+            <column name="username" value="admin"/>
+            <column name="password" value="$2a$10$SEcY8Mb1FhE4KDzS4.xIROES/XSa524NEN8etQWk9xdG09jGpxFcu"/>
+            <column name="role" value="ROLE_ADMIN"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

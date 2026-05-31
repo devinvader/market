@@ -16,15 +16,14 @@ public class CartRepositoryTest extends BaseRepositoryTest {
     public void saveAndFindById_givenCart_whenSave_thenFindById() {
         // given
         Cart cart = new Cart();
+        cart.setUserId(1L);
 
         // when
         Cart savedCart = cartRepository.save(cart).block();
 
         // then
         StepVerifier.create(cartRepository.findById(savedCart.getId()))
-                .assertNext(found -> {
-                    assertThat(found.getId()).isEqualTo(savedCart.getId());
-                })
+                .assertNext(found -> assertThat(found.getId()).isEqualTo(savedCart.getId()))
                 .verifyComplete();
     }
 
@@ -32,6 +31,7 @@ public class CartRepositoryTest extends BaseRepositoryTest {
     public void delete_givenCart_whenDelete_thenNotFound() {
         // given
         Cart cart = new Cart();
+        cart.setUserId(1L);
         Cart savedCart = cartRepository.save(cart).block();
 
         // when

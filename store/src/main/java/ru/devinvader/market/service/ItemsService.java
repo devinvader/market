@@ -36,7 +36,7 @@ public class ItemsService {
     private final ReactiveRedisTemplate<String, ListQueryResult> itemListRedisTemplate;
     private final ReactiveRedisTemplate<String, String> marketStringRedisTemplate;
 
-    public Mono<PagedListItemDto> getItems(String search, SortTypeDto sortType, Integer page, Integer size) {
+    public Mono<PagedListItemDto> getItems(String search, SortTypeDto sortType, Integer page, Integer size, Long userId) {
         Pageable pageable = PageRequest.of(page, size, sortType.getSort());
 
         return getListVersion()
@@ -55,7 +55,7 @@ public class ItemsService {
                 .flatMap(result -> {
                     List<Item> items = result.items();
                     Long total = result.total();
-                    return toItemDtosWithCounts(items)
+                    return toItemDtosWithCounts(items, userId)
                             .map(itemDtos -> {
                                 List<List<ItemDto>> rows = groupIntoRows(itemDtos, 3);
                                 PagingDto paging = buildPagingDto(total, page, size);
@@ -64,18 +64,23 @@ public class ItemsService {
                 });
     }
 
-    public Mono<ItemDto> getItem(long id) {
+    public Mono<ItemDto> getItem(long id, Long userId) {
         String cacheKey = "item:card:" + id;
         return itemRedisTemplate.opsForValue().get(cacheKey)
                 .switchIfEmpty(Mono.defer(() -> itemRepository.findById(id)
                         .switchIfEmpty(Mono.error(new RuntimeException("Item not found")))
                         .flatMap(item -> itemRedisTemplate.opsForValue().set(cacheKey, item, Duration.ofMinutes(10))
                                 .thenReturn(item))))
-                .flatMap(item -> cartService.getItemCounts(List.of(id))
-                        .map(counts -> {
-                            int count = counts.getOrDefault(id, 0);
-                            return itemMapper.toDto(item, count);
-                        }));
+                .flatMap(item -> {
+                    if (userId == null) {
+                        return Mono.just(itemMapper.toDto(item, 0));
+                    }
+                    return cartService.getItemCounts(userId, List.of(id))
+                            .map(counts -> {
+                                int count = counts.getOrDefault(id, 0);
+                                return itemMapper.toDto(item, count);
+                            });
+                });
     }
 
     private Mono<String> getListVersion() {
@@ -87,12 +92,10 @@ public class ItemsService {
         String searchHash = "none";
         if (search != null && !search.isBlank()) {
             try {
-                // генерация MD5 hex хэша, чтобы максимально избежать коллизий
                 MessageDigest digest = MessageDigest.getInstance("MD5");
                 byte[] hash = digest.digest(search.toLowerCase().trim().getBytes(StandardCharsets.UTF_8));
                 StringBuilder hexString = new StringBuilder();
                 for (byte b : hash) {
-                    // SO перевод
                     String hex = Integer.toHexString(0xff & b);
                     if (hex.length() == 1)
                         hexString.append('0');
@@ -120,14 +123,19 @@ public class ItemsService {
         return Mono.zip(itemsFlux.collectList(), totalMono);
     }
 
-    private Mono<List<ItemDto>> toItemDtosWithCounts(List<Item> items) {
+    private Mono<List<ItemDto>> toItemDtosWithCounts(List<Item> items, Long userId) {
         if (items.isEmpty()) {
             return Mono.just(List.of());
         }
         List<Long> itemIds = items.stream()
                 .map(Item::getId)
                 .collect(Collectors.toList());
-        return cartService.getItemCounts(itemIds)
+        if (userId == null) {
+            return Mono.just(items.stream()
+                    .map(item -> itemMapper.toDto(item, 0))
+                    .collect(Collectors.toList()));
+        }
+        return cartService.getItemCounts(userId, itemIds)
                 .map(counts -> items.stream()
                         .map(item -> itemMapper.toDto(item, counts.getOrDefault(item.getId(), 0)))
                         .collect(Collectors.toList()));
@@ -143,13 +151,11 @@ public class ItemsService {
             rows.add(row);
         }
 
-        // Если список пуст, возвращаем пустой список строк
         if (rows.isEmpty()) {
             return rows;
         }
 
-        // Дополняем последнюю строку пустыми DTO
-        List<ItemDto> lastRow = rows.get(rows.size() - 1);
+        List<ItemDto> lastRow = rows.getLast();
         while (lastRow.size() < itemsPerRow) {
             lastRow.add(ItemDto.empty());
         }

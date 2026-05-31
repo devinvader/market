@@ -19,5 +19,6 @@ public class CartItem {
     @Column("item_id")
     private Long itemId;
 
+    @Column("count")
     private Integer count;
 }

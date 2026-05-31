@@ -18,6 +18,7 @@ import ru.devinvader.market.web.dto.ActionTypeDto;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.csrf;
 
 class ItemsControllerIntegrationTest extends IntegrationBaseTest {
 
@@ -56,17 +57,18 @@ class ItemsControllerIntegrationTest extends IntegrationBaseTest {
     void actOnItems_addToCart_shouldIncreaseCartItemCount() {
         // given
         long itemId = 1L;
-        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId)
+        CartItem existing = cartItemRepository.findByCartIdAndItemId(100L, itemId)
                 .defaultIfEmpty(new CartItem())
                 .block();
-        Integer initialCount = existing.getCount() != null ? existing.getCount() : 0;
+        int initialCount = existing.getCount() != null ? existing.getCount() : 0;
 
         // when
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("id", String.valueOf(itemId));
         formData.add("action", ActionTypeDto.PLUS.name());
 
-        webTestClient.post().uri("/items")
+        webTestClient.mutateWith(csrf())
+                .post().uri("/items")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters.fromFormData(formData))
                 .exchange()
@@ -74,7 +76,7 @@ class ItemsControllerIntegrationTest extends IntegrationBaseTest {
                 .expectStatus().is3xxRedirection()
                 .expectHeader().value("Location", location -> assertThat(location, startsWith("/items")));
 
-        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
+        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(100L, itemId))
                 .assertNext(updated -> {
                     assertThat(updated, notNullValue());
                     assertThat(updated.getCount(), equalTo(initialCount + 1));
@@ -93,7 +95,7 @@ class ItemsControllerIntegrationTest extends IntegrationBaseTest {
     void actOnItem_removeFromCart_shouldDecreaseCartItemCount() {
         // given
         long itemId = 1L;
-        CartItem existing = cartItemRepository.findByCartIdAndItemId(1L, itemId).block();
+        CartItem existing = cartItemRepository.findByCartIdAndItemId(100L, itemId).block();
         assertThat(existing, notNullValue());
         int initialCount = existing.getCount();
         assertThat(initialCount, greaterThan(0));
@@ -102,7 +104,8 @@ class ItemsControllerIntegrationTest extends IntegrationBaseTest {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("action", ActionTypeDto.MINUS.name());
 
-        webTestClient.post().uri("/items/{id}", itemId)
+        webTestClient.mutateWith(csrf())
+                .post().uri("/items/{id}", itemId)
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters.fromFormData(formData))
                 .exchange()
@@ -110,7 +113,7 @@ class ItemsControllerIntegrationTest extends IntegrationBaseTest {
                 .expectStatus().is3xxRedirection()
                 .expectHeader().value("Location", location -> assertThat(location, is("/items/" + itemId)));
 
-        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(1L, itemId))
+        StepVerifier.create(cartItemRepository.findByCartIdAndItemId(100L, itemId))
                 .assertNext(updated ->
                         assertThat(updated.getCount(), equalTo(initialCount - 1)))
                 .verifyComplete();
@@ -119,7 +122,8 @@ class ItemsControllerIntegrationTest extends IntegrationBaseTest {
     @Test
     void buyItems_shouldCreateOrderAndRedirect() {
         // when
-        webTestClient.post().uri("/buy")
+        webTestClient.mutateWith(csrf())
+                .post().uri("/buy")
                 .exchange()
         // then
                 .expectStatus().is3xxRedirection()

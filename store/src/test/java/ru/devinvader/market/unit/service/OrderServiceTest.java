@@ -6,6 +6,8 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.*;
 import ru.devinvader.market.mapper.ItemMapper;
@@ -54,28 +56,30 @@ public class OrderServiceTest {
     @Captor
     private ArgumentCaptor<List<OrderItem>> orderItemsCaptor;
 
+    private final Long USER_ID = 1L;
+
     @Test
     void getOrders_noOrders_returnsEmptyFlux() {
         // given
-        when(orderRepository.findAll()).thenReturn(Flux.empty());
+        when(orderRepository.findByUserId(USER_ID)).thenReturn(Flux.empty());
 
         // when
-        Flux<OrderDto> result = orderService.getOrders();
+        Flux<OrderDto> result = orderService.getOrders(USER_ID);
 
         // then
         StepVerifier.create(result)
                 .expectNextCount(0)
                 .verifyComplete();
-        verify(orderRepository).findAll();
+        verify(orderRepository).findByUserId(USER_ID);
         verifyNoInteractions(orderItemRepository);
     }
 
     @Test
     void getOrders_withOrders_returnsOrderDtos() {
         // given
-        Order order1 = new Order(1L, 5000L);
-        Order order2 = new Order(2L, 3000L);
-        when(orderRepository.findAll()).thenReturn(Flux.just(order1, order2));
+        Order order1 = new Order(1L, 5000L, USER_ID);
+        Order order2 = new Order(2L, 3000L, USER_ID);
+        when(orderRepository.findByUserId(USER_ID)).thenReturn(Flux.just(order1, order2));
         when(orderRepository.findById(1L)).thenReturn(Mono.just(order1));
         when(orderRepository.findById(2L)).thenReturn(Mono.just(order2));
 
@@ -97,7 +101,7 @@ public class OrderServiceTest {
         ItemDto dto3 = new ItemDto(300L, "Item 3", "Desc 3", 1500L, 3);
 
         // when
-        Flux<OrderDto> result = orderService.getOrders();
+        Flux<OrderDto> result = orderService.getOrders(USER_ID);
 
         // then
         StepVerifier.create(result)
@@ -112,7 +116,7 @@ public class OrderServiceTest {
                         dto.items().contains(dto3))
                 .verifyComplete();
 
-        verify(orderRepository).findAll();
+        verify(orderRepository).findByUserId(USER_ID);
         verify(orderItemRepository).findByOrderId(1L);
         verify(orderItemRepository).findByOrderId(2L);
         verify(itemRepository).findAllById(List.of(100L, 200L));
@@ -123,7 +127,7 @@ public class OrderServiceTest {
     void getOrCreateOrder_existingOrder_returnsOrderDto() {
         // given
         long orderId = 5L;
-        Order order = new Order(orderId, 3000L);
+        Order order = new Order(orderId, 3000L, USER_ID);
         OrderItem orderItem = new OrderItem(30L, orderId, 300L, 2);
         Item item = new Item(300L, "Item 3", "Desc 3", 1500L, null);
         ItemDto itemDto = new ItemDto(300L, "Item 3", "Desc 3", 1500L, 2);
@@ -133,14 +137,14 @@ public class OrderServiceTest {
         when(itemRepository.findAllById(List.of(300L))).thenReturn(Flux.just(item));
 
         // when
-        Mono<OrderDto> result = orderService.getOrCreateOrder(orderId, false);
+        Mono<OrderDto> result = orderService.getOrCreateOrder(orderId, false, USER_ID);
 
         // then
         StepVerifier.create(result)
                 .expectNextMatches(dto -> dto.id() == orderId &&
                         dto.totalSum() == 3000L &&
                         dto.items().size() == 1 &&
-                        dto.items().get(0).equals(itemDto))
+                        dto.items().getFirst().equals(itemDto))
                 .verifyComplete();
 
         verify(orderRepository).findById(orderId);
@@ -155,15 +159,38 @@ public class OrderServiceTest {
         when(orderRepository.findById(orderId)).thenReturn(Mono.empty());
 
         // when
-        Mono<OrderDto> result = orderService.getOrCreateOrder(orderId, false);
+        Mono<OrderDto> result = orderService.getOrCreateOrder(orderId, false, USER_ID);
 
         // then
         StepVerifier.create(result)
                 .expectErrorMatches(e ->
-                        e instanceof RuntimeException && e.getMessage().equals("Order not found"))
+                        e instanceof ResponseStatusException rs &&
+                                rs.getStatusCode() == HttpStatus.FORBIDDEN)
                 .verify();
 
         verify(orderRepository).findById(orderId);
+    }
+
+    @Test
+    void getOrCreateOrder_existingOrder_wrongUser_throwsError() {
+        // given
+        long orderId = 5L;
+        Long wrongUserId = 999L;
+        Order order = new Order(orderId, 3000L, wrongUserId);
+        when(orderRepository.findById(orderId)).thenReturn(Mono.just(order));
+
+        // when
+        Mono<OrderDto> result = orderService.getOrCreateOrder(orderId, false, USER_ID);
+
+        // then
+        StepVerifier.create(result)
+                .expectErrorMatches(e ->
+                        e instanceof ResponseStatusException rs &&
+                                rs.getStatusCode() == HttpStatus.FORBIDDEN)
+                .verify();
+
+        verify(orderRepository).findById(orderId);
+        verifyNoInteractions(orderItemRepository);
     }
 
     @Test
@@ -174,7 +201,7 @@ public class OrderServiceTest {
         CartItem cartItem2 = new CartItem(2L, cartId, 20L, 1);
         Item item1 = new Item(10L, "Item 1", "Desc 1", 1000L, null);
         Item item2 = new Item(20L, "Item 2", "Desc 2", 2000L, null);
-        Order savedOrder = new Order(100L, 5000L);
+        Order savedOrder = new Order(100L, 5000L, USER_ID);
         OrderItem orderItem1 = new OrderItem(null, 100L, 10L, 3);
         OrderItem orderItem2 = new OrderItem(null, 100L, 20L, 1);
         ItemDto dto1 = new ItemDto(10L, "Item 1", "Desc 1", 1000L, 3);
@@ -187,7 +214,7 @@ public class OrderServiceTest {
         when(cartItemRepository.deleteAll(anyList())).thenReturn(Mono.empty());
 
         // when
-        Mono<OrderDto> result = orderService.getOrCreateOrder(cartId, true);
+        Mono<OrderDto> result = orderService.getOrCreateOrder(cartId, true, USER_ID);
 
         // then
         StepVerifier.create(result)
@@ -203,6 +230,7 @@ public class OrderServiceTest {
         verify(orderRepository).save(orderCaptor.capture());
         Order capturedOrder = orderCaptor.getValue();
         assertEquals(5000L, capturedOrder.getTotalSum());
+        assertEquals(USER_ID, capturedOrder.getUserId());
 
         verify(orderItemRepository).saveAll(orderItemsCaptor.capture());
         List<OrderItem> savedOrderItems = orderItemsCaptor.getValue();
@@ -218,11 +246,11 @@ public class OrderServiceTest {
         // given
         long cartId = 999L;
         when(cartItemRepository.findByCartId(cartId)).thenReturn(Flux.empty());
-        Order savedOrder = new Order(100L, 0L);
+        Order savedOrder = new Order(100L, 0L, USER_ID);
         when(orderRepository.save(any(Order.class))).thenReturn(Mono.just(savedOrder));
 
         // when
-        Mono<OrderDto> result = orderService.getOrCreateOrder(cartId, true);
+        Mono<OrderDto> result = orderService.getOrCreateOrder(cartId, true, USER_ID);
 
         // then
         StepVerifier.create(result)
@@ -235,5 +263,6 @@ public class OrderServiceTest {
         verify(orderRepository).save(orderCaptor.capture());
         Order capturedOrder = orderCaptor.getValue();
         assertEquals(0L, capturedOrder.getTotalSum());
+        assertEquals(USER_ID, capturedOrder.getUserId());
     }
 }

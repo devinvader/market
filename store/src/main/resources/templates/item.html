@@ -16,9 +16,19 @@
                     <h2>
                         <span class="badge text-bg-success">Витрина магазина</span>
                     </h2>
-                    <a href="/orders" class="btn btn-secondary ms-auto bi bi-file-earmark-text"> Заказы</a>
-                    <a href="/cart/items" class="btn btn-secondary bi bi-cart4"> Корзина</a>
-                    <a href="/items" class="btn btn-secondary bi bi-arrow-left-square"> Главная</a>
+                    <div class="hstack gap-2" th:if="${isAuthenticated}">
+                        <a href="/orders" class="btn btn-secondary ms-auto bi bi-file-earmark-text"> Заказы</a>
+                        <a href="/cart/items" class="btn btn-secondary bi bi-cart4"> Корзина</a>
+                        <form th:action="@{/logout}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-outline-danger">Выйти</button>
+                        </form>
+                        <a href="/items" class="btn btn-secondary bi bi-arrow-left-square"> Главная</a>
+                    </div>
+                    <div class="hstack gap-2" th:unless="${isAuthenticated}">
+                        <a href="/login" class="btn btn-primary">Войти</a>
+                        <a href="/register" class="btn btn-outline-secondary">Регистрация</a>
+                        <a href="/items" class="btn btn-secondary bi bi-arrow-left-square"> Главная</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -32,7 +42,7 @@
                             <span class="badge text-bg-success justify-content-end" th:text="${item.price()}+' руб.'"></span>
                         </h5>
                         <p class="card-text" th:text="${item.description()}"></p>
-                        <form th:action="@{${'/items/'+item.id()}}" method="post">
+                        <form th:action="@{${'/items/'+item.id()}}" method="post" th:if="${isAuthenticated}">
                             <div class="hstack gap-3">
                                 <button type="submit" class="btn btn-outline-secondary" name="action" value="MINUS">-</button>
                                 <span th:text="${item.count()}"></span>

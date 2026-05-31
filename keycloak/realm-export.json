@@ -1,0 +1,71 @@
+{
+  "id": "market",
+  "realm": "market",
+  "enabled": true,
+  "displayName": "Realm Market",
+  "sslRequired": "external",
+  "accessTokenLifespan": 300,
+  "accessCodeLifespan": 60,
+  "clients": [
+    {
+      "clientId": "store",
+      "enabled": true,
+      "publicClient": false,
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "store-secret",
+      "redirectUris": [],
+      "webOrigins": [],
+      "protocolMappers": [
+        {
+          "name": "payment-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "payment-service",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "billing-role",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "role": "BILLING"
+          }
+        }
+      ]
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "ROLE_ADMIN",
+        "description": "Роль администратора/сервисная"
+      },
+      {
+        "name": "ROLE_USER",
+        "description": "Роль пользователя"
+      },
+      {
+        "name": "BILLING",
+        "description": "Роль для доступа к платежному сервису"
+      }
+    ]
+  },
+  "users": [],
+  "groups": [],
+  "defaultRole": {
+    "name": "default-roles-market"
+  },
+  "eventsListeners": [
+    "jboss-logging"
+  ]
+}
