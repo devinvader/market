@@ -25,7 +25,10 @@
     <changeSet id="002-add-user_id-to-carts" author="market">
         <addColumn tableName="carts">
             <column name="user_id" type="BIGINT">
-                <constraints foreignKeyName="fk_carts_user" references="users(id)"/>
+                <constraints
+                        foreignKeyName="fk_carts_user"
+                        references="users(id)"
+                        unique="true"/>
             </column>
         </addColumn>
     </changeSet>
@@ -42,12 +45,12 @@
         <insert tableName="users">
             <column name="username" value="customer"/>
             <!-- bcrypt пароль "password" -->
-            <column name="password" value="$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"/>
+            <column name="password" value="$2a$10$SEcY8Mb1FhE4KDzS4.xIROES/XSa524NEN8etQWk9xdG09jGpxFcu"/>
             <column name="role" value="ROLE_USER"/>
         </insert>
         <insert tableName="users">
             <column name="username" value="admin"/>
-            <column name="password" value="$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"/>
+            <column name="password" value="$2a$10$SEcY8Mb1FhE4KDzS4.xIROES/XSa524NEN8etQWk9xdG09jGpxFcu"/>
             <column name="role" value="ROLE_ADMIN"/>
         </insert>
     </changeSet>
