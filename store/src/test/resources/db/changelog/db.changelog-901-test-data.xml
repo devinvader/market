@@ -11,13 +11,13 @@
             <column name="id" value="100"/>
             <column name="username" value="testuser"/>
             <!-- так же, пароль password сформированный при помощи bcrypt-->
-            <column name="password" value="$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"/>
+            <column name="password" value="$2a$10$SEcY8Mb1FhE4KDzS4.xIROES/XSa524NEN8etQWk9xdG09jGpxFcu"/>
             <column name="role" value="ROLE_USER"/>
         </insert>
         <insert tableName="users">
             <column name="id" value="101"/>
             <column name="username" value="user"/>
-            <column name="password" value="$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"/>
+            <column name="password" value="$2a$10$SEcY8Mb1FhE4KDzS4.xIROES/XSa524NEN8etQWk9xdG09jGpxFcu"/>
             <column name="role" value="ROLE_USER"/>
         </insert>
     </changeSet>
