@@ -23,9 +23,7 @@ public class CartRepositoryTest extends BaseRepositoryTest {
 
         // then
         StepVerifier.create(cartRepository.findById(savedCart.getId()))
-                .assertNext(found -> {
-                    assertThat(found.getId()).isEqualTo(savedCart.getId());
-                })
+                .assertNext(found -> assertThat(found.getId()).isEqualTo(savedCart.getId()))
                 .verifyComplete();
     }
 

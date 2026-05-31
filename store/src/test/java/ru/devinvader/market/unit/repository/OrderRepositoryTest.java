@@ -24,9 +24,7 @@ public class OrderRepositoryTest extends BaseRepositoryTest {
 
         // then
         StepVerifier.create(orderRepository.findById(savedOrder.getId()))
-                .assertNext(found -> {
-                    assertThat(found.getTotalSum()).isEqualTo(1000L);
-                })
+                .assertNext(found -> assertThat(found.getTotalSum()).isEqualTo(1000L))
                 .verifyComplete();
     }
 

@@ -60,7 +60,7 @@ class ItemsControllerIntegrationTest extends IntegrationBaseTest {
         CartItem existing = cartItemRepository.findByCartIdAndItemId(100L, itemId)
                 .defaultIfEmpty(new CartItem())
                 .block();
-        Integer initialCount = existing.getCount() != null ? existing.getCount() : 0;
+        int initialCount = existing.getCount() != null ? existing.getCount() : 0;
 
         // when
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();

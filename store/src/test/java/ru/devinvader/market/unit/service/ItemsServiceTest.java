@@ -21,7 +21,6 @@ import ru.devinvader.market.web.dto.SortTypeDto;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.time.Duration;
 
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
@@ -142,7 +141,7 @@ public class ItemsServiceTest {
         StepVerifier.create(result)
                 .assertNext(pagedDto -> {
                     assertEquals(1, pagedDto.items().size());
-                    List<ItemDto> row = pagedDto.items().get(0);
+                    List<ItemDto> row = pagedDto.items().getFirst();
                     assertEquals(3, row.size());
                     assertEquals(itemDto, row.get(0));
                     assertEquals(ItemDto.empty(), row.get(1));
@@ -183,7 +182,7 @@ public class ItemsServiceTest {
         StepVerifier.create(result)
                 .assertNext(pagedDto -> {
                     assertEquals(1, pagedDto.items().size());
-                    List<ItemDto> row = pagedDto.items().get(0);
+                    List<ItemDto> row = pagedDto.items().getFirst();
                     assertEquals(3, row.size());
                     assertEquals(dto1, row.get(0));
                     assertEquals(dto2, row.get(1));
@@ -222,7 +221,7 @@ public class ItemsServiceTest {
         StepVerifier.create(result)
                 .assertNext(pagedDto -> {
                     assertEquals(2, pagedDto.items().size());
-                    List<ItemDto> row1 = pagedDto.items().get(0);
+                    List<ItemDto> row1 = pagedDto.items().getFirst();
                     assertEquals(3, row1.size());
                     assertEquals(dto1, row1.get(0));
                     assertEquals(dto2, row1.get(1));
@@ -390,9 +389,7 @@ public class ItemsServiceTest {
 
         // then
         StepVerifier.create(result)
-                .assertNext(pagedDto -> {
-                    assertEquals(1, pagedDto.items().size());
-                })
+                .assertNext(pagedDto -> assertEquals(1, pagedDto.items().size()))
                 .verifyComplete();
 
         verify(listValueOps).get(anyString());
@@ -427,7 +424,6 @@ public class ItemsServiceTest {
     void getItems_withSearch_usesShorterTtl() {
         // given
         String search = "specific search";
-        Pageable pageable = PageRequest.of(PAGE, SIZE, SORT_TYPE.getSort());
         when(itemRepository.findByTitleContainingIgnoreCaseOrDescriptionContainingIgnoreCase(eq(search),
                 eq(search), any()))
                 .thenReturn(Flux.empty());

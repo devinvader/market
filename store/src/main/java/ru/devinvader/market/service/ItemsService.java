@@ -155,7 +155,7 @@ public class ItemsService {
             return rows;
         }
 
-        List<ItemDto> lastRow = rows.get(rows.size() - 1);
+        List<ItemDto> lastRow = rows.getLast();
         while (lastRow.size() < itemsPerRow) {
             lastRow.add(ItemDto.empty());
         }

@@ -72,7 +72,7 @@ class AdminControllerIntegrationTest extends IntegrationBaseTest {
                         .collectList())
                 .assertNext(items -> {
                     assertThat(items.size(), is(1));
-                    Item savedItem = items.get(0);
+                    Item savedItem = items.getFirst();
                     assertThat(savedItem.getDescription(), equalTo(description));
                     assertThat(savedItem.getPrice(), equalTo(price));
                 })

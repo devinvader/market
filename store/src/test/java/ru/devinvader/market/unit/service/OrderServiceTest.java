@@ -142,7 +142,7 @@ public class OrderServiceTest {
                 .expectNextMatches(dto -> dto.id() == orderId &&
                         dto.totalSum() == 3000L &&
                         dto.items().size() == 1 &&
-                        dto.items().get(0).equals(itemDto))
+                        dto.items().getFirst().equals(itemDto))
                 .verifyComplete();
 
         verify(orderRepository).findById(orderId);
