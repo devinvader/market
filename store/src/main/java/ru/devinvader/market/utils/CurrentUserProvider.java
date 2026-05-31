@@ -1,6 +1,6 @@
 package ru.devinvader.market.utils;
 
-import org.springframework.security.core.Authentication;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.stereotype.Component;
@@ -13,13 +13,13 @@ public class CurrentUserProvider {
     public Mono<Long> getCurrentUserId() {
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
-                .map(Authentication::getPrincipal)
-                .flatMap(principal -> {
-                    if (principal instanceof MarketUserDetails authUser) {
+                .filter(auth -> auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken))
+                .flatMap(auth -> {
+                    if (auth.getPrincipal() instanceof MarketUserDetails authUser) {
                         return Mono.just(authUser.getUserId());
                     }
                     return Mono.error(new IllegalArgumentException(
-                            "Unsupported principal type: " + principal.getClass().getName()));
+                            "Unsupported principal type: " + auth.getPrincipal().getClass().getName()));
                 });
     }
 }

@@ -8,6 +8,8 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.csrf.CookieServerCsrfTokenRepository;
+import org.springframework.security.web.server.csrf.XorServerCsrfTokenRequestAttributeHandler;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.WebSession;
 import reactor.core.publisher.Mono;
 
@@ -19,6 +21,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
+        var csrfHandler = new XorServerCsrfTokenRequestAttributeHandler();
+        csrfHandler.setTokenFromMultipartDataEnabled(true);
+
         return http
                 .authorizeExchange(exchanges -> exchanges
                         // наверное, стоило сделать это через PreAuthorize в контроллерах, но
@@ -39,12 +44,17 @@ public class SecurityConfig {
                                         .flatMap(WebSession::invalidate)
                                         .then(Mono.fromRunnable(() -> {
                                             exchange.getExchange().getResponse().setStatusCode(HttpStatus.FOUND);
-                                            exchange.getExchange().getResponse().getHeaders().setLocation(URI.create("/items"));
+                                            exchange.getExchange().getResponse().getHeaders().setLocation(URI.create("/login?logout"));
                                         }))
                         )
                 )
+                .exceptionHandling(exceptions -> exceptions
+                        .accessDeniedHandler((exchange, denied) ->
+                                Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Access Denied", denied)))
+                )
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieServerCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(csrfHandler)
                 )
                 .build();
     }

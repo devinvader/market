@@ -31,8 +31,11 @@ public class CartService {
     private final ItemMapper itemMapper;
 
     public Flux<ItemDto> getCartItems(Long userId) {
-        return getUserCart(userId)
-                .flatMapMany(cart -> cartItemRepository.findByCartId(cart.getId()))
+        return getUserCart(userId).flatMapMany(this::getCartItemsByCart);
+    }
+
+    public Flux<ItemDto> getCartItemsByCart(Cart cart) {
+        return cartItemRepository.findByCartId(cart.getId())
                 .collectList()
                 .flatMapMany(cartItems -> {
                     List<Long> itemIds = cartItems.stream()
@@ -49,7 +52,11 @@ public class CartService {
     }
 
     public Mono<Long> getTotal(Long userId) {
-        return getCartItems(userId)
+        return getUserCart(userId).flatMap(this::getTotalByCart);
+    }
+
+    public Mono<Long> getTotalByCart(Cart cart) {
+        return getCartItemsByCart(cart)
                 .map(item -> item.price() * item.count())
                 .reduce(0L, Long::sum);
     }
@@ -68,13 +75,15 @@ public class CartService {
     }
 
     public Flux<ItemDto> actOnCartItems(Long userId, long itemId, ActionTypeDto action) {
-        return getUserCart(userId)
-                .flatMap(cart -> cartItemRepository.findByCartIdAndItemId(cart.getId(), itemId)
-                        .switchIfEmpty(Mono.just(new CartItem(null, cart.getId(), itemId, 0)))
-                        .flatMap(cartItem -> handleAction(cartItem, action))
-                        .then()
-                )
-                .thenMany(getCartItems(userId));
+        return getUserCart(userId).flatMapMany(cart -> actOnCartItemsByCart(cart, itemId, action));
+    }
+
+    public Flux<ItemDto> actOnCartItemsByCart(Cart cart, long itemId, ActionTypeDto action) {
+        return cartItemRepository.findByCartIdAndItemId(cart.getId(), itemId)
+                .switchIfEmpty(Mono.just(new CartItem(null, cart.getId(), itemId, 0)))
+                .flatMap(cartItem -> handleAction(cartItem, action))
+                .then()
+                .thenMany(getCartItemsByCart(cart));
     }
 
     private Mono<CartItem> handleAction(CartItem cartItem, ActionTypeDto action) {

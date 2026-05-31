@@ -23,6 +23,7 @@ public class OrderController {
                 .flatMap(userId -> orderService.getOrders(userId)
                         .collectList()
                         .map(orders -> {
+                            model.addAttribute("isAuthenticated", true);
                             model.addAttribute("orders", orders);
                             return "orders";
                         }));
@@ -37,6 +38,7 @@ public class OrderController {
         return currentUserProvider.getCurrentUserId()
                 .flatMap(userId -> orderService.getOrCreateOrder(id, newOrder, userId)
                         .map(order -> {
+                            model.addAttribute("isAuthenticated", true);
                             model.addAttribute("order", order);
                             model.addAttribute("newOrder", newOrder);
                             return "order";

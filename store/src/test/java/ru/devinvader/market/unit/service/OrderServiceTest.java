@@ -6,6 +6,8 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.test.StepVerifier;
 import ru.devinvader.market.domain.*;
 import ru.devinvader.market.mapper.ItemMapper;
@@ -162,10 +164,33 @@ public class OrderServiceTest {
         // then
         StepVerifier.create(result)
                 .expectErrorMatches(e ->
-                        e instanceof RuntimeException && e.getMessage().equals("Order not found"))
+                        e instanceof ResponseStatusException rs &&
+                                rs.getStatusCode() == HttpStatus.FORBIDDEN)
                 .verify();
 
         verify(orderRepository).findById(orderId);
+    }
+
+    @Test
+    void getOrCreateOrder_existingOrder_wrongUser_throwsError() {
+        // given
+        long orderId = 5L;
+        Long wrongUserId = 999L;
+        Order order = new Order(orderId, 3000L, wrongUserId);
+        when(orderRepository.findById(orderId)).thenReturn(Mono.just(order));
+
+        // when
+        Mono<OrderDto> result = orderService.getOrCreateOrder(orderId, false, USER_ID);
+
+        // then
+        StepVerifier.create(result)
+                .expectErrorMatches(e ->
+                        e instanceof ResponseStatusException rs &&
+                                rs.getStatusCode() == HttpStatus.FORBIDDEN)
+                .verify();
+
+        verify(orderRepository).findById(orderId);
+        verifyNoInteractions(orderItemRepository);
     }
 
     @Test
