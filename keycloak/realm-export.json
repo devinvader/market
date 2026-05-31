@@ -38,7 +38,7 @@
           "protocolMapper": "oidc-hardcoded-role-mapper",
           "consentRequired": false,
           "config": {
-            "role": "ROLE_BILLING"
+            "role": "BILLING"
           }
         }
       ]
@@ -55,7 +55,7 @@
         "description": "Роль пользователя"
       },
       {
-        "name": "ROLE_BILLING",
+        "name": "BILLING",
         "description": "Роль для доступа к платежному сервису"
       }
     ]
