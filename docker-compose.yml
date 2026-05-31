@@ -75,6 +75,7 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       PAYMENT_SERVICE_URL: http://payment:8081
       KEYCLOAK_TOKEN_URI: http://keycloak:8080/realms/market/protocol/openid-connect/token
+      KEYCLOAK_CLIENT_ID: store
       KEYCLOAK_CLIENT_SECRET: store-secret
     ports:
       - "8080:8080"

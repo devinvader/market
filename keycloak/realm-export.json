@@ -8,7 +8,7 @@
   "accessCodeLifespan": 60,
   "clients": [
     {
-      "clientId": "store-client",
+      "clientId": "store",
       "enabled": true,
       "publicClient": false,
       "serviceAccountsEnabled": true,
