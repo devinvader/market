@@ -16,6 +16,7 @@ public class CartRepositoryTest extends BaseRepositoryTest {
     public void saveAndFindById_givenCart_whenSave_thenFindById() {
         // given
         Cart cart = new Cart();
+        cart.setUserId(1L);
 
         // when
         Cart savedCart = cartRepository.save(cart).block();
@@ -32,6 +33,7 @@ public class CartRepositoryTest extends BaseRepositoryTest {
     public void delete_givenCart_whenDelete_thenNotFound() {
         // given
         Cart cart = new Cart();
+        cart.setUserId(1L);
         Cart savedCart = cartRepository.save(cart).block();
 
         // when
