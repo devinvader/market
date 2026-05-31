@@ -28,16 +28,16 @@ public class OrderService {
     private final ItemMapper itemMapper;
     private final OrderItemMapper orderMapper;
 
-    public Flux<OrderDto> getOrders() {
-        return orderRepository.findAll()
+    public Flux<OrderDto> getOrders(Long userId) {
+        return orderRepository.findByUserId(userId)
                 .flatMap(order -> findOrderDtoById(order.getId()));
     }
 
-    public Mono<OrderDto> getOrCreateOrder(long id, boolean newOrder) {
+    public Mono<OrderDto> getOrCreateOrder(long id, boolean newOrder, Long userId) {
         if (newOrder) {
-            return createOrderFromCart(/* cartId */ id);
+            return createOrderFromCart(/* cartId */ id, userId);
         } else {
-            return findOrderDtoById(/* orderId */ id)
+            return findOrderDtoById(id)
                     .switchIfEmpty(Mono.error(new RuntimeException("Order not found")));
         }
     }
@@ -53,24 +53,25 @@ public class OrderService {
                 );
     }
 
-    private Mono<OrderDto> createOrderFromCart(long cartId) {
+    private Mono<OrderDto> createOrderFromCart(long cartId, Long userId) {
         return cartItemRepository.findByCartId(cartId)
                 .collectList()
-                .flatMap(this::processCartItemsAndCreateOrder);
+                .flatMap(cartItems -> processCartItemsAndCreateOrder(cartItems, userId));
     }
 
-    private Mono<OrderDto> processCartItemsAndCreateOrder(List<CartItem> cartItems) {
+    private Mono<OrderDto> processCartItemsAndCreateOrder(List<CartItem> cartItems, Long userId) {
         if (cartItems.isEmpty()) {
-            return createEmptyOrder();
+            return createEmptyOrder(userId);
         }
         return calculateTotalSum(cartItems)
-                .flatMap(totalSum -> createOrderAndItems(cartItems, totalSum))
+                .flatMap(totalSum -> createOrderAndItems(cartItems, totalSum, userId))
                 .flatMap(order -> clearCartAndReturnDto(cartItems, order));
     }
 
-    private Mono<OrderDto> createEmptyOrder() {
-        return orderRepository.save(new Order(null, 0L))
-                .map(order -> new OrderDto(order.getId(), List.of(), 0L));
+    private Mono<OrderDto> createEmptyOrder(Long userId) {
+        Order order = new Order(null, 0L, userId);
+        return orderRepository.save(order)
+                .map(saved -> new OrderDto(saved.getId(), List.of(), 0L));
     }
 
     private Mono<Long> calculateTotalSum(List<CartItem> cartItems) {
@@ -87,15 +88,16 @@ public class OrderService {
                 );
     }
 
-    private Mono<Order> createOrderAndItems(List<CartItem> cartItems, Long totalSum) {
-        return orderRepository.save(new Order(null, totalSum))
-                .flatMap(order -> {
+    private Mono<Order> createOrderAndItems(List<CartItem> cartItems, Long totalSum, Long userId) {
+        Order order = new Order(null, totalSum, userId);
+        return orderRepository.save(order)
+                .flatMap(savedOrder -> {
                     List<OrderItem> orderItems = cartItems.stream()
-                            .map(cartItem -> orderMapper.fromDto(order, cartItem))
+                            .map(cartItem -> orderMapper.fromDto(savedOrder, cartItem))
                             .collect(Collectors.toList());
                     return orderItemRepository.saveAll(orderItems)
                             .collectList()
-                            .thenReturn(order);
+                            .thenReturn(savedOrder);
                 });
     }
 

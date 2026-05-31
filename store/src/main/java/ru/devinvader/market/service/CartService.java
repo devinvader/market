@@ -2,6 +2,7 @@ package ru.devinvader.market.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -30,11 +31,8 @@ public class CartService {
     private final ItemRepository itemRepository;
     private final ItemMapper itemMapper;
 
-    // т.к. у нас пока нет ни пользователей, ни сессии, используем один cartId
-    private static final long DEFAULT_CART_ID = 1L;
-
-    public Flux<ItemDto> getCartItems() {
-        return getUserCart()
+    public Flux<ItemDto> getCartItems(Long userId) {
+        return getUserCart(userId)
                 .flatMapMany(cart -> cartItemRepository.findByCartId(cart.getId()))
                 .collectList()
                 .flatMapMany(cartItems -> {
@@ -50,14 +48,15 @@ public class CartService {
                                     }));
                 });
     }
-    public Mono<Long> getTotal() {
-        return getCartItems()
+
+    public Mono<Long> getTotal(Long userId) {
+        return getCartItems(userId)
                 .map(item -> item.price() * item.count())
                 .reduce(0L, Long::sum);
     }
 
-    public Mono<Map<Long, Integer>> getItemCounts(List<Long> itemIds) {
-        return getUserCart()
+    public Mono<Map<Long, Integer>> getItemCounts(Long userId, List<Long> itemIds) {
+        return getUserCart(userId)
                 .flatMap(cart -> cartItemRepository.findByCartIdAndItemIdIn(cart.getId(), itemIds)
                         .collectList()
                         .map(cartItems -> {
@@ -69,14 +68,14 @@ public class CartService {
                         }));
     }
 
-    public Flux<ItemDto> actOnCartItems(long id, ActionTypeDto action) {
-        return getUserCart()
-                .flatMap(cart -> cartItemRepository.findByCartIdAndItemId(cart.getId(), id)
-                        .switchIfEmpty(Mono.just(new CartItem(null, cart.getId(), id, 0)))
+    public Flux<ItemDto> actOnCartItems(Long userId, long itemId, ActionTypeDto action) {
+        return getUserCart(userId)
+                .flatMap(cart -> cartItemRepository.findByCartIdAndItemId(cart.getId(), itemId)
+                        .switchIfEmpty(Mono.just(new CartItem(null, cart.getId(), itemId, 0)))
                         .flatMap(cartItem -> handleAction(cartItem, action))
                         .then()
                 )
-                .thenMany(getCartItems());
+                .thenMany(getCartItems(userId));
     }
 
     private Mono<CartItem> handleAction(CartItem cartItem, ActionTypeDto action) {
@@ -98,10 +97,11 @@ public class CartService {
         }
     }
 
-    public Mono<Cart> getUserCart() {
-        return cartRepository.findById(DEFAULT_CART_ID)
+    public Mono<Cart> getUserCart(Long userId) {
+        return cartRepository.findByUserId(userId)
                 .switchIfEmpty(Mono.defer(() -> {
                     Cart newCart = new Cart();
+                    newCart.setUserId(userId);
                     return cartRepository.save(newCart);
                 }));
     }

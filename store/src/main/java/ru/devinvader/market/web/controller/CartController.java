@@ -10,6 +10,7 @@ import reactor.core.publisher.Mono;
 import ru.devinvader.market.service.CartService;
 import ru.devinvader.market.service.PaymentClientService;
 import ru.devinvader.market.utils.ClientConstants;
+import ru.devinvader.market.utils.CurrentUserProvider;
 import ru.devinvader.market.web.dto.ItemActionForm;
 import ru.devinvader.market.web.dto.ItemDto;
 
@@ -21,22 +22,26 @@ public class CartController {
 
     private final CartService cartService;
     private final PaymentClientService paymentClientService;
+    private final CurrentUserProvider currentUserProvider;
 
     @GetMapping("/cart/items")
     public Mono<String> getItems(Model model) {
-        Mono<List<ItemDto>> itemsMono = cartService.getCartItems().collectList();
-        Mono<Long> totalMono = cartService.getTotal();
-        Mono<Long> balanceMono = paymentClientService.getBalance();
+        return currentUserProvider.getCurrentUserId()
+                .flatMap(userId -> {
+                    Mono<List<ItemDto>> itemsMono = cartService.getCartItems(userId).collectList();
+                    Mono<Long> totalMono = cartService.getTotal(userId);
+                    Mono<Long> balanceMono = paymentClientService.getBalance();
 
-        return Mono.zip(itemsMono, totalMono, balanceMono)
-                .map(tuple -> {
-                    long balance = tuple.getT3();
-                    boolean serviceAvailable = balance != ClientConstants.BALANCE_SERVICE_UNAVAILABLE;
-                    model.addAttribute("items", tuple.getT1());
-                    model.addAttribute("total", tuple.getT2());
-                    model.addAttribute("balance", balance);
-                    model.addAttribute("paymentServiceAvailable", serviceAvailable);
-                    return "cart";
+                    return Mono.zip(itemsMono, totalMono, balanceMono)
+                            .map(tuple -> {
+                                long balance = tuple.getT3();
+                                boolean serviceAvailable = balance != ClientConstants.BALANCE_SERVICE_UNAVAILABLE;
+                                model.addAttribute("items", tuple.getT1());
+                                model.addAttribute("total", tuple.getT2());
+                                model.addAttribute("balance", balance);
+                                model.addAttribute("paymentServiceAvailable", serviceAvailable);
+                                return "cart";
+                            });
                 });
     }
 
@@ -45,19 +50,22 @@ public class CartController {
             @ModelAttribute("item") ItemActionForm item,
             Model model
     ) {
-        Mono<List<ItemDto>> itemsMono = cartService.actOnCartItems(item.id(), item.action()).collectList();
-        Mono<Long> totalMono = cartService.getTotal();
-        Mono<Long> balanceMono = paymentClientService.getBalance();
+        return currentUserProvider.getCurrentUserId()
+                .flatMap(userId -> {
+                    Mono<List<ItemDto>> itemsMono = cartService.actOnCartItems(userId, item.id(), item.action()).collectList();
+                    Mono<Long> totalMono = cartService.getTotal(userId);
+                    Mono<Long> balanceMono = paymentClientService.getBalance();
 
-        return Mono.zip(itemsMono, totalMono, balanceMono)
-                .map(tuple -> {
-                    long balance = tuple.getT3();
-                    boolean serviceAvailable = balance != ClientConstants.BALANCE_SERVICE_UNAVAILABLE;
-                    model.addAttribute("items", tuple.getT1());
-                    model.addAttribute("total", tuple.getT2());
-                    model.addAttribute("balance", balance);
-                    model.addAttribute("paymentServiceAvailable", serviceAvailable);
-                    return "cart";
+                    return Mono.zip(itemsMono, totalMono, balanceMono)
+                            .map(tuple -> {
+                                long balance = tuple.getT3();
+                                boolean serviceAvailable = balance != ClientConstants.BALANCE_SERVICE_UNAVAILABLE;
+                                model.addAttribute("items", tuple.getT1());
+                                model.addAttribute("total", tuple.getT2());
+                                model.addAttribute("balance", balance);
+                                model.addAttribute("paymentServiceAvailable", serviceAvailable);
+                                return "cart";
+                            });
                 });
     }
 }

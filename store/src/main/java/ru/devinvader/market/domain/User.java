@@ -1,24 +1,26 @@
 package ru.devinvader.market.domain;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
-import lombok.*;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("cart_items")
-public class CartItem {
+@Table("users")
+public class User {
     @Id
     private Long id;
 
-    @Column("cart_id")
-    private Long cartId;
+    @Column("username")
+    private String username;
 
-    @Column("item_id")
-    private Long itemId;
+    @Column("password")
+    private String password;
 
-    @Column("count")
-    private Integer count;
+    @Column("role")
+    private String role;
 }

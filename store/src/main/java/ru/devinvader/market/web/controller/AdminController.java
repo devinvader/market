@@ -29,7 +29,7 @@ public class AdminController {
             @RequestParam(name = "pageSize", required = false, defaultValue = "10") Integer size,
             Model model
     ) {
-        return itemsService.getItems(search, sortType, page, size)
+        return itemsService.getItems(search, sortType, page, size, null)
                 .map(pagedItems -> {
                     model.addAttribute("search", search);
                     model.addAttribute("sort", sortType.name());
