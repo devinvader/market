@@ -1,0 +1,88 @@
+openapi: 3.0.3
+info:
+  title: payment-service
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8081
+    description: Локальный payment-service
+
+paths:
+  /api/payment/balance:
+    get:
+      operationId: getBalance
+      summary: Получить текущий баланс
+      tags:
+        - payment
+      responses:
+        '200':
+          description: Текущий баланс
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+
+  /api/payment/pay:
+    post:
+      operationId: pay
+      summary: Совершает оплату
+      tags:
+        - payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        '200':
+          description: Результат оплаты
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+
+components:
+  schemas:
+    BalanceResponse:
+      type: object
+      required:
+        - balance
+      properties:
+        balance:
+          type: integer
+          format: int64
+          description: Текущий баланс в рублях
+          example: 1000000
+
+    PaymentRequest:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          type: integer
+          format: int64
+          description: Сумма для списания с баланса в рублях
+          example: 5000
+
+    PaymentResponse:
+      type: object
+      required:
+        - success
+        - newBalance
+        - message
+      properties:
+        success:
+          type: boolean
+          description: Был ли платеж успешным
+          example: true
+        newBalance:
+          type: integer
+          format: int64
+          description: Баланс после попытки оплаты
+          example: 995000
+        message:
+          type: string
+          description: Сообщение об оплате
+          example: "Платёж прошёл успешно"

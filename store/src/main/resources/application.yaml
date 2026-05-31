@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: market
+  r2dbc:
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/market}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  liquibase: # т.к. использует JDBC, нужны отдельные переменные писать :(
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    url: ${SPRING_LIQUIBASE_URL:jdbc:postgresql://localhost:5432/market}
+    user: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+
+integration:
+  payment-service:
+    url: ${PAYMENT_SERVICE_URL:http://localhost:8081}
