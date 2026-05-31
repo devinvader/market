@@ -14,6 +14,9 @@ import ru.devinvader.market.repository.OrderRepository;
 import ru.devinvader.market.web.dto.ItemDto;
 import ru.devinvader.market.web.dto.OrderDto;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,20 +40,21 @@ public class OrderService {
         if (newOrder) {
             return createOrderFromCart(/* cartId */ id, userId);
         } else {
-            return findOrderDtoById(id)
-                    .switchIfEmpty(Mono.error(new RuntimeException("Order not found")));
+            return orderRepository.findById(id)
+                    .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Order not found")))
+                    .flatMap(order -> {
+                        if (!order.getUserId().equals(userId)) {
+                            return Mono.error(new ResponseStatusException(HttpStatus.FORBIDDEN, "Order not found"));
+                        }
+                        return toOrderDto(order);
+                    });
         }
     }
 
     private Mono<OrderDto> findOrderDtoById(Long orderId) {
         return orderRepository.findById(orderId)
                 .switchIfEmpty(Mono.error(new RuntimeException("Order not found")))
-                .flatMap(order -> orderItemRepository.findByOrderId(orderId)
-                        .collectList()
-                        .flatMap(orderItems -> toItemDtosFromOrderItems(orderItems)
-                                .map(items -> new OrderDto(order.getId(), items, order.getTotalSum()))
-                        )
-                );
+                .flatMap(this::toOrderDto);
     }
 
     private Mono<OrderDto> createOrderFromCart(long cartId, Long userId) {
@@ -133,5 +137,13 @@ public class OrderService {
                         .map(cartItem -> itemMapper.toDto(itemMap.get(cartItem.getItemId()), cartItem.getCount()))
                 )
                 .collectList();
+    }
+
+    private Mono<OrderDto> toOrderDto(Order order) {
+        return orderItemRepository.findByOrderId(order.getId())
+                .collectList()
+                .flatMap(orderItems -> toItemDtosFromOrderItems(orderItems)
+                        .map(items -> new OrderDto(order.getId(), items, order.getTotalSum()))
+                );
     }
 }

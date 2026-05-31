@@ -41,14 +41,15 @@ public class ItemsController {
         return currentUserProvider.getCurrentUserId()
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
-                .flatMap(userIdOpt -> itemsService.getItems(search, sortType, page, size, userIdOpt.orElse(null)))
-                .map(pagedItems -> {
-                    model.addAttribute("search", search);
-                    model.addAttribute("sort", sortType.name());
-                    model.addAttribute("paging", pagedItems.pagingDto());
-                    model.addAttribute("items", pagedItems.items());
-                    return "items";
-                });
+                .flatMap(userIdOpt -> itemsService.getItems(search, sortType, page, size, userIdOpt.orElse(null))
+                        .map(pagedItems -> {
+                            model.addAttribute("isAuthenticated", userIdOpt.isPresent());
+                            model.addAttribute("search", search);
+                            model.addAttribute("sort", sortType.name());
+                            model.addAttribute("paging", pagedItems.pagingDto());
+                            model.addAttribute("items", pagedItems.items());
+                            return "items";
+                        }));
     }
 
     @PostMapping("/items")
@@ -72,11 +73,12 @@ public class ItemsController {
         return currentUserProvider.getCurrentUserId()
                 .map(Optional::of)
                 .defaultIfEmpty(Optional.empty())
-                .flatMap(userIdOpt -> itemsService.getItem(id, userIdOpt.orElse(null)))
-                .map(item -> {
-                    model.addAttribute("item", item);
-                    return "item";
-                });
+                .flatMap(userIdOpt -> itemsService.getItem(id, userIdOpt.orElse(null))
+                        .map(item -> {
+                            model.addAttribute("isAuthenticated", userIdOpt.isPresent());
+                            model.addAttribute("item", item);
+                            return "item";
+                        }));
     }
 
     @PostMapping("/items/{id}")

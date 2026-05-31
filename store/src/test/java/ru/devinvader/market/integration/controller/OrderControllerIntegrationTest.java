@@ -29,4 +29,12 @@ class OrderControllerIntegrationTest extends IntegrationBaseTest {
                 .exchange()
                 .expectStatus().isOk();
     }
+
+    @Test
+    @WithMockMarketUser(userId = 101)
+    void getOrder_ofAnotherUser_shouldReturnError() {
+        webTestClient.get().uri("/orders/100")
+                .exchange()
+                .expectStatus().isForbidden();
+    }
 }
